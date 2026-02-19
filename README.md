@@ -1,4 +1,4 @@
-# Mutual Fund Calculator — ELS Group 11
+# Mutual Fund Calculator — QuantSquad
 
 ## Getting Started
 
