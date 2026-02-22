@@ -19,29 +19,63 @@ public class MutualFundService {
     // Hardcoded risk-free rate (US Treasury 10-year rate)
     private static final double RISK_FREE_RATE = 0.0435; // 4.35% as of Feb 2026
     
-    // Hardcoded list of mutual funds
+    // Hardcoded list of top 25 mutual funds
     private static final List<MutualFund> MUTUAL_FUNDS = Arrays.asList(
-        new MutualFund("VFIAX", "Vanguard 500 Index Fund"),
+        new MutualFund("VSMPX", "Vanguard Total Stock Market Index Fund Institutional Plus"),
         new MutualFund("FXAIX", "Fidelity 500 Index Fund"),
-        new MutualFund("SWPPX", "Schwab S&P 500 Index Fund"),
-        new MutualFund("VTSAX", "Vanguard Total Stock Market Index Fund"),
-        new MutualFund("AGTHX", "American Funds Growth Fund of America"),
+        new MutualFund("VFIAX", "Vanguard 500 Index Fund Admiral"),
+        new MutualFund("VTSAX", "Vanguard Total Stock Market Index Fund Admiral"),
+        new MutualFund("SPAXX", "Fidelity Government Money Market Fund"),
+        new MutualFund("VMFXX", "Vanguard Federal Money Market Fund Investor"),
+        new MutualFund("VGTSX", "Vanguard Total International Stock Index Fund Investor"),
+        new MutualFund("SWVXX", "Schwab Prime Advantage Money Fund Inv"),
+        new MutualFund("FDRXX", "Fidelity Government Cash Reserves"),
+        new MutualFund("FGTXX", "Goldman Sachs FS Government Fund Institutional"),
+        new MutualFund("OGVXX", "JPMorgan US Government Money Market Fund Capital"),
+        new MutualFund("FCTDX", "Fidelity Strategic Advisers Fidelity US Total Stk"),
+        new MutualFund("VIIIX", "Vanguard Institutional Index Fund Inst Plus"),
+        new MutualFund("FRGXX", "Fidelity Instl Government Portfolio Institutional"),
+        new MutualFund("VTBNX", "Vanguard Total Bond Market II Index Fund Institutional"),
+        new MutualFund("MVRXX", "Morgan Stanley Inst Liq Government Port Institutional"),
+        new MutualFund("TFDXX", "BlackRock Liquidity FedFund Institutional"),
+        new MutualFund("GVMXX", "State Street US Government Money Market Fund Prem"),
+        new MutualFund("AGTHX", "American Funds Growth Fund of America A"),
+        new MutualFund("VTBIX", "Vanguard Total Bond Market II Index Fund Investor"),
+        new MutualFund("CJTXX", "JPMorgan 100% US Treasury Securities Money Market Fund Capital"),
+        new MutualFund("TTTXX", "BlackRock Liquidity Treasury Trust Fund Institutional"),
         new MutualFund("FCNTX", "Fidelity Contrafund"),
-        new MutualFund("VGTSX", "Vanguard Total International Stock Index Fund"),
-        new MutualFund("DODGX", "Dodge & Cox Stock Fund")
+        new MutualFund("SNAXX", "Schwab Prime Advantage Money Fund Ultra"),
+        new MutualFund("PIMIX", "PIMCO Income Fund Institutional")
     );
     
     // Hardcoded expected returns (historical average for previous year)
-    // These would ideally come from a data API, but are hardcoded per requirements
+    // Stock index funds: ~20-26%, Money market funds: ~4-5%, Bond funds: ~3-6%, Growth funds: ~23-28%
     private static final Map<String, Double> EXPECTED_RETURNS = new HashMap<>() {{
-        put("VFIAX", 0.26);  // 26%
-        put("FXAIX", 0.26);  // 26%
-        put("SWPPX", 0.26);  // 26%
-        put("VTSAX", 0.25);  // 25%
-        put("AGTHX", 0.23);  // 23%
-        put("FCNTX", 0.28);  // 28%
-        put("VGTSX", 0.15);  // 15%
-        put("DODGX", 0.24);  // 24%
+        put("VSMPX", 0.25);  // 25% - Total stock market
+        put("FXAIX", 0.26);  // 26% - S&P 500
+        put("VFIAX", 0.26);  // 26% - S&P 500
+        put("VTSAX", 0.25);  // 25% - Total stock market
+        put("SPAXX", 0.045); // 4.5% - Money market
+        put("VMFXX", 0.044); // 4.4% - Money market
+        put("VGTSX", 0.15);  // 15% - International stocks
+        put("SWVXX", 0.048); // 4.8% - Money market
+        put("FDRXX", 0.046); // 4.6% - Money market
+        put("FGTXX", 0.047); // 4.7% - Money market
+        put("OGVXX", 0.045); // 4.5% - Money market
+        put("FCTDX", 0.24);  // 24% - Total stock
+        put("VIIIX", 0.26);  // 26% - S&P 500
+        put("FRGXX", 0.046); // 4.6% - Money market
+        put("VTBNX", 0.035); // 3.5% - Bond fund
+        put("MVRXX", 0.047); // 4.7% - Money market
+        put("TFDXX", 0.046); // 4.6% - Money market
+        put("GVMXX", 0.045); // 4.5% - Money market
+        put("AGTHX", 0.23);  // 23% - Growth fund
+        put("VTBIX", 0.035); // 3.5% - Bond fund
+        put("CJTXX", 0.044); // 4.4% - Money market
+        put("TTTXX", 0.045); // 4.5% - Money market
+        put("FCNTX", 0.28);  // 28% - Growth fund
+        put("SNAXX", 0.048); // 4.8% - Money market
+        put("PIMIX", 0.055); // 5.5% - Income fund
     }};
 
     public MutualFundService() {
