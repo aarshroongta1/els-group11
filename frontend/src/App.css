@@ -1,7 +1,298 @@
-.App {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 2rem;
-  font-family: Arial, sans-serif;
-  text-align: center;
+/* ============================================
+   Warm Minimalist — Mutual Fund Calculator
+   Cozy premium fintech aesthetic
+   ============================================ */
+
+/* --- Reset & Base --- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: #f0ebe3;
+  color: #2d2a26;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-weight: 400;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* --- App Container --- */
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1.25rem;
+  gap: 1.5rem;
+}
+
+/* --- Main Card --- */
+.card {
+  width: 100%;
+  max-width: 460px;
+  background: #faf7f2;
+  border: none;
+  border-radius: 20px;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.03),
+    0 8px 30px rgba(0, 0, 0, 0.05);
+  padding: 2.75rem 2.5rem 2.25rem;
+  animation: cardFadeUp 0.6s cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+@keyframes cardFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* --- Header / Greeting --- */
+.header {
+  margin-bottom: 2rem;
+}
+
+.greeting {
+  font-family: 'Fraunces', 'Georgia', serif;
+  font-optical-sizing: auto;
+  font-weight: 500;
+  font-size: 1.65rem;
+  line-height: 1.25;
+  color: #2d2a26;
+  letter-spacing: -0.01em;
+}
+
+.subtitle {
+  margin-top: 0.5rem;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 400;
+  color: #9a9488;
+  line-height: 1.5;
+}
+
+.decorative-line {
+  margin-top: 1.25rem;
+  width: 32px;
+  height: 2px;
+  border-radius: 1px;
+  background-color: #3a5a8c;
+  opacity: 0.6;
+}
+
+/* --- Form --- */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.35rem;
+}
+
+/* --- Field --- */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.label {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #8b6b4a;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* --- Select --- */
+.select-wrapper {
+  position: relative;
+}
+
+.select {
+  width: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+  background: #f5f1eb;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  padding: 0.9rem 2.5rem 0.9rem 1.1rem;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.925rem;
+  font-weight: 400;
+  color: #2d2a26;
+  cursor: pointer;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease,
+    background-color 0.3s ease;
+  outline: none;
+}
+
+.select:focus {
+  border-color: #3a5a8c;
+  box-shadow:
+    inset 0 1px 3px rgba(0, 0, 0, 0.04),
+    0 0 0 3px rgba(58, 90, 140, 0.12);
+  background: #faf7f2;
+}
+
+.select option[value=""][disabled] {
+  color: #b8b2a8;
+}
+
+.select-chevron {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+/* --- Input --- */
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input {
+  width: 100%;
+  background: #f5f1eb;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  padding: 0.9rem 1.1rem;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.925rem;
+  font-weight: 400;
+  color: #2d2a26;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease,
+    background-color 0.3s ease;
+  outline: none;
+}
+
+.input::placeholder {
+  color: #b8b2a8;
+}
+
+.input:focus {
+  border-color: #3a5a8c;
+  box-shadow:
+    inset 0 1px 3px rgba(0, 0, 0, 0.04),
+    0 0 0 3px rgba(58, 90, 140, 0.12);
+  background: #faf7f2;
+}
+
+/* Remove number input spinners */
+.input[type="number"]::-webkit-inner-spin-button,
+.input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.input-prefix {
+  position: absolute;
+  left: 1.1rem;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.925rem;
+  font-weight: 500;
+  color: #9a9488;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.input-with-prefix {
+  padding-left: 2rem;
+}
+
+.input-suffix {
+  position: absolute;
+  right: 1.1rem;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #9a9488;
+  pointer-events: none;
+}
+
+.input-with-suffix {
+  padding-right: 4rem;
+}
+
+/* --- Button --- */
+.button {
+  margin-top: 0.75rem;
+  width: 100%;
+  padding: 1rem 1.5rem;
+  background: #3a5a8c;
+  color: #ffffff;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow:
+    0 2px 8px rgba(58, 90, 140, 0.2),
+    0 1px 3px rgba(0, 0, 0, 0.06);
+  transition:
+    background-color 0.3s ease,
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
+  outline: none;
+}
+
+.button:hover:not(:disabled) {
+  background: #2e4a73;
+  transform: translateY(-2px);
+  box-shadow:
+    0 6px 20px rgba(58, 90, 140, 0.28),
+    0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow:
+    0 1px 4px rgba(58, 90, 140, 0.15),
+    0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+
+/* --- Responsive --- */
+@media (max-width: 540px) {
+  .app {
+    padding: 2rem 1rem;
+  }
+
+  .card {
+    padding: 2rem 1.75rem 1.75rem;
+  }
+
+  .greeting {
+    font-size: 1.4rem;
+  }
 }
