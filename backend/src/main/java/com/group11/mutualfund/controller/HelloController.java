@@ -1,54 +1,75 @@
 package com.group11.mutualfund.controller;
 
+import com.group11.mutualfund.dto.FutureValueResponse;
 import com.group11.mutualfund.model.MutualFund;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import com.group11.mutualfund.service.MutualFundService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
 
-import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 @RestController
 public class HelloController {
 
-    // Hardcoded list of mutual funds
-    @GetMapping("/funds")
-    public List<MutualFund> getFunds() {
-        return Arrays.asList(
-                new MutualFund("VFIAX", "Vanguard 500 Index Fund"),
-                new MutualFund("SWPPX", "Schwab S&P 500 Index Fund"),
-                new MutualFund("FXAIX", "Fidelity 500 Index Fund")
-        );
+    private final MutualFundService mutualFundService;
+
+    @Autowired
+    public HelloController(MutualFundService mutualFundService) {
+        this.mutualFundService = mutualFundService;
     }
 
-    // Hardcoded beta values from your tables
-    private final Map<String, Double> betaMap = Map.of(
-            "VFIAX", 1.0,
-            "SWPPX", 1.0,
-            "FXAIX", 1.0
-    );
-    private final Map<String, Double> expectedReturnMap = Map.of(
-            "VFIAX", 0.13,   // example: 13% last year return
-            "SWPPX", 0.13,
-            "FXAIX", 0.13
-    );
+    /**
+     * Root endpoint - API information
+     */
+    @GetMapping("/")
+    public Map<String, Object> root() {
+        Map<String, Object> info = new HashMap<>();
+        info.put("application", "Mutual Fund Calculator API");
+        info.put("version", "1.0.0");
+        info.put("endpoints", Map.of(
+            "funds", "/api/funds",
+            "calculate", "/api/calculate?ticker={ticker}&amount={amount}&years={years}",
+            "beta", "/api/beta/{ticker}"
+        ));
+        return info;
+    }
 
-    @GetMapping("/calculate")
-    public double calculateFutureValue(
+    /**
+     * GET /api/funds
+     * Returns list of all available mutual funds
+     */
+    @GetMapping("/api/funds")
+    public List<MutualFund> getFunds() {
+        return mutualFundService.getAllMutualFunds();
+    }
+
+    /**
+     * GET /api/calculate
+     * Calculate future value of investment
+     * @param ticker Mutual fund ticker symbol
+     * @param amount Initial investment amount
+     * @param years Time period in years
+     * @return FutureValueResponse with detailed calculation
+     */
+    @GetMapping("/api/calculate")
+    public FutureValueResponse calculateFutureValue(
             @RequestParam String ticker,
             @RequestParam double amount,
             @RequestParam int years
     ) {
-        double riskFreeRate = 0.04;   // 4% US Treasury
-        double expectedReturn = expectedReturnMap.getOrDefault(ticker, 0.08);
-        // Get beta from map, default to 1.0 if ticker not found
-        double beta = betaMap.getOrDefault(ticker, 1.0);
+        return mutualFundService.calculateFutureValue(ticker, amount, years);
+    }
 
-        // Capital Asset Pricing Model (CAPM)
-        double r = riskFreeRate + beta * (expectedReturn - riskFreeRate);
-        
-        // Future value calculation
-        return amount * Math.pow(1 + r, years);
+    /**
+     * GET /api/beta/{ticker}
+     * Get beta value for a specific mutual fund
+     * @param ticker Mutual fund ticker symbol
+     * @return Beta value
+     */
+    @GetMapping("/api/beta/{ticker}")
+    public double getBeta(@PathVariable String ticker) {
+        return mutualFundService.getBeta(ticker);
     }
 }
