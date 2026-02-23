@@ -281,6 +281,107 @@ body {
   box-shadow: none;
 }
 
+/* --- Error Message --- */
+.error {
+  padding: 0.85rem 1.1rem;
+  background: #f8e8e8;
+  border: 1px solid #e8c4c4;
+  border-radius: 10px;
+  color: #a84848;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-top: 0.5rem;
+}
+
+/* --- Results Card --- */
+.results-card {
+  margin-top: 1.75rem;
+  padding-top: 1.75rem;
+  border-top: 1px solid #e8e3da;
+  animation: resultsFadeIn 0.5s ease-out both;
+}
+
+@keyframes resultsFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.results-inner {
+  background: linear-gradient(135deg, #3a5a8c 0%, #2e4a73 100%);
+  border-radius: 16px;
+  padding: 1.75rem 1.5rem;
+  color: #ffffff;
+  box-shadow:
+    0 4px 16px rgba(58, 90, 140, 0.25),
+    0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.results-label {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.75);
+  margin-bottom: 0.4rem;
+}
+
+.results-value {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 2.25rem;
+  font-weight: 600;
+  line-height: 1.2;
+  margin-bottom: 0.75rem;
+}
+
+.results-meta {
+  margin-bottom: 1.25rem;
+}
+
+.results-badge {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.35rem 0.85rem;
+  border-radius: 20px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #ffffff;
+  backdrop-filter: blur(10px);
+}
+
+.results-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.results-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.875rem;
+}
+
+.results-detail-label {
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 400;
+}
+
+.results-detail-value {
+  color: #ffffff;
+  font-weight: 600;
+}
 
 /* --- Responsive --- */
 @media (max-width: 540px) {
