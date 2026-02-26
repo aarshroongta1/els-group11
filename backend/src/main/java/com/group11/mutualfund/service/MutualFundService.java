@@ -138,7 +138,7 @@ public class MutualFundService {
         double rate = RISK_FREE_RATE + beta * (expectedReturn - RISK_FREE_RATE);
         
         // Calculate future value
-        double futureValue = principal * Math.pow(1 + rate, years);
+        double futureValue = principal * Math.exp(rate * years);
         
         return new FutureValueResponse(
             futureValue,
