@@ -1,0 +1,23 @@
+PROGRAM_TASK.md
+  e3480d69e70149ab 1-101
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.5",
+  "base_commit_sha": "e3b04134d9ea8cbb507f95f18a4908051935c2ea",
+  "prompts": {
+    "e3480d69e70149ab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "41696059-5c9a-4571-90e3-ff60ad92b429",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Aarsh Roongta <aarshroongta1@gmail.com>",
+      "messages": [],
+      "total_additions": 101,
+      "total_deletions": 0,
+      "accepted_lines": 101,
+      "overriden_lines": 0
+    }
+  }
+}
