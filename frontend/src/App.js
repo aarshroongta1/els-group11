@@ -57,7 +57,38 @@ function App() {
       setLoading(false);
     }
   };
+// recommendation button onclick
+const handleRecommend = async () => {
+  setLoading(true);
+  setError(null);
 
+  try {
+    const response = await fetch(`${API_BASE_URL}/recommend`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        riskLevel: "medium" // you can later replace this with user input
+      })
+    });
+
+    const data = await response.json();
+    console.log(data);
+
+    alert(
+      "Recommended Funds: " +
+      data.recommendedFunds.join(", ") +
+      "\n\n" +
+      data.explanation
+    );
+
+  } catch (err) {
+    setError("Failed to get recommendation");
+  } finally {
+    setLoading(false);
+  }
+};
   return (
     <div className="app">
       <div className="card">
@@ -89,6 +120,14 @@ function App() {
           >
             {loading ? 'Calculating...' : 'Calculate Future Value'}
           </button>
+          //recommendation button
+           <button
+             className="button"
+             disabled={loading}
+             onClick={handleRecommend}
+           >
+             Get Recommendation
+           </button>
 
           {error && <div className="error">{error}</div>}
         </div>
