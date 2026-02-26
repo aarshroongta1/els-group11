@@ -1,0 +1,27 @@
+backend/src/main/resources/application.properties
+  e3480d69e70149ab 2
+backend/src/main/java/com/group11/mutualfund/service/MutualFundService.java
+  e3480d69e70149ab 6,10-11,17-19,54-55,59-60,96-97,100-106,108-146
+.gitignore
+  e3480d69e70149ab 18-20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.5",
+  "base_commit_sha": "6081809447068e13d834b47b1939d9a64a9de61c",
+  "prompts": {
+    "e3480d69e70149ab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "41696059-5c9a-4571-90e3-ff60ad92b429",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Aarsh Roongta <aarshroongta1@gmail.com>",
+      "messages": [],
+      "total_additions": 81,
+      "total_deletions": 46,
+      "accepted_lines": 70,
+      "overriden_lines": 0
+    }
+  }
+}
