@@ -1,0 +1,23 @@
+.gitignore
+  35db79379cba0b01 17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.17",
+  "base_commit_sha": "2ead817e41baeab79b43822c73618860b074c96f",
+  "prompts": {
+    "35db79379cba0b01": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b53550d5-28c2-4072-b360-2291519aaf0a",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Aarsh Roongta <aarshroongta1@gmail.com>",
+      "messages": [],
+      "total_additions": 2,
+      "total_deletions": 1,
+      "accepted_lines": 2,
+      "overriden_lines": 0
+    }
+  }
+}
