@@ -2,7 +2,7 @@ function InvestmentInput({ amount, onAmountChange }) {
   return (
     <div className="field">
       <label className="label" htmlFor="amount-input">
-        Investment Amount
+        Investment Amount <span className="required">*</span>
       </label>
       <div className="input-wrapper">
         <span className="input-prefix">$</span>
