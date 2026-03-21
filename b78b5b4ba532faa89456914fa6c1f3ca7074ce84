@@ -1,0 +1,42 @@
+.gitignore
+  35db79379cba0b01 16-18
+frontend/src/App.css
+  35db79379cba0b01 3,25,32-39,42,45-47,49-56,59-70,73-74,77,79-83,87,95-102,105-135,168,214,281,326-341,358,360-361,378-379,398,447-457,460-475,479-480
+frontend/src/App.js
+  35db79379cba0b01 94-96,98-103,105-118,120-133,135-153
+backend/src/main/java/com/group11/mutualfund/service/AIService.java
+  35db79379cba0b01 4,18,20-22,32-38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.17",
+  "base_commit_sha": "b78b5b4ba532faa89456914fa6c1f3ca7074ce84",
+  "prompts": {
+    "35db79379cba0b01": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b53550d5-28c2-4072-b360-2291519aaf0a",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Aarsh Roongta <aarshroongta1@gmail.com>",
+      "messages": [],
+      "total_additions": 309,
+      "total_deletions": 168,
+      "accepted_lines": 259,
+      "overriden_lines": 1
+    },
+    "5dcf0c2e46ca02e2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "90130038-ff1a-4b74-b29b-7a0ce1c220f4",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Aarsh Roongta <aarshroongta1@gmail.com>",
+      "messages": [],
+      "total_additions": 27,
+      "total_deletions": 0,
+      "accepted_lines": 27,
+      "overriden_lines": 0
+    }
+  }
+}
