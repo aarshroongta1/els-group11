@@ -11,7 +11,8 @@ function App() {
   const [funds, setFunds] = useState([]);
   const [selectedFunds, setSelectedFunds] = useState([]);
   const [amount, setAmount] = useState('');
-  const [years, setYears] = useState('');
+  const [duration, setDuration] = useState('');
+  const [timeUnit, setTimeUnit] = useState('years');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -33,12 +34,21 @@ function App() {
     setResults((prev) => prev.filter((r) => r.fundTicker !== ticker));
   };
 
+  // Convert duration to years for the API
+  const getYears = () => {
+    const val = parseFloat(duration);
+    if (!val || val <= 0) return 0;
+    if (timeUnit === 'months') return val / 12;
+    if (timeUnit === 'days') return val / 365;
+    return val;
+  };
+
   const isFormValid =
     selectedFunds.length > 0 &&
     amount &&
-    years &&
+    duration &&
     parseFloat(amount) > 0 &&
-    parseFloat(years) > 0;
+    getYears() > 0;
 
   const handleCalculate = async () => {
     setLoading(true);
@@ -48,7 +58,7 @@ function App() {
       const allResults = await Promise.all(
         selectedFunds.map(async (ticker) => {
           const response = await fetch(
-            `${API_BASE_URL}/calculate?ticker=${ticker}&amount=${amount}&years=${years}`
+            `${API_BASE_URL}/calculate?ticker=${ticker}&amount=${amount}&years=${getYears()}`
           );
           const data = await response.json();
           const returnPct = ((data.futureValue - data.principal) / data.principal) * 100;
@@ -142,8 +152,10 @@ const handleRecommend = async () => {
               onAmountChange={setAmount}
             />
             <TimeHorizonInput
-              years={years}
-              onYearsChange={setYears}
+              duration={duration}
+              unit={timeUnit}
+              onDurationChange={setDuration}
+              onUnitChange={setTimeUnit}
             />
 
             <button
@@ -174,13 +186,36 @@ const handleRecommend = async () => {
               ))}
             </div>
           ) : (
-            <div className="empty-state">
-              <div className="empty-state-icon">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#b8b2a8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <div className="welcome">
+              <div className="welcome-header">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9a9488" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
                 </svg>
+                <span className="welcome-label">Market Insights</span>
               </div>
-              <p className="empty-state-text">Select up to 3 funds and enter your investment details to compare projected returns side by side.</p>
+              <div className="insights-row">
+                <a className="insight-card" href="https://www.reuters.com" target="_blank" rel="noopener noreferrer">
+                  <span className="insight-sentiment insight-sentiment--bullish">Bullish</span>
+                  <p className="insight-headline">S&P 500 Index Funds See Record Inflows as Investors Bet on Continued Growth</p>
+                  <span className="insight-source">Reuters</span>
+                </a>
+                <a className="insight-card" href="https://www.cnbc.com" target="_blank" rel="noopener noreferrer">
+                  <span className="insight-sentiment insight-sentiment--neutral">Neutral</span>
+                  <p className="insight-headline">Fed Holds Rates Steady, Markets Weigh Impact on Bond and Equity Funds</p>
+                  <span className="insight-source">CNBC</span>
+                </a>
+                <a className="insight-card" href="https://www.bloomberg.com" target="_blank" rel="noopener noreferrer">
+                  <span className="insight-sentiment insight-sentiment--bullish">Bullish</span>
+                  <p className="insight-headline">Vanguard and Fidelity Lead Mutual Fund Industry With Low-Cost Offerings</p>
+                  <span className="insight-source">Bloomberg</span>
+                </a>
+                <a className="insight-card" href="https://www.wsj.com" target="_blank" rel="noopener noreferrer">
+                  <span className="insight-sentiment insight-sentiment--bearish">Bearish</span>
+                  <p className="insight-headline">International Fund Managers Warn of Emerging Market Volatility Ahead</p>
+                  <span className="insight-source">WSJ</span>
+                </a>
+              </div>
+              <p className="welcome-hint">Select up to 3 funds from the sidebar to compare projected returns.</p>
             </div>
           )}
         </main>
