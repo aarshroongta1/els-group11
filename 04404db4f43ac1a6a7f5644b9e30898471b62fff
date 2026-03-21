@@ -1,0 +1,33 @@
+frontend/src/components/FundSelector.js
+  35db79379cba0b01 1-8,12,18-22,25-27,29,51-74
+frontend/src/App.css
+  35db79379cba0b01 100-101,105-165,220-224,424-476,478-480,494-498,500-514,517,519-522,525-527,530-532,535,537,539,543-549,552-558,561-564,567,569-571,574-575,578-580,583,590-591,593,596-597,599,603-612,637,645-650
+frontend/src/App.js
+  35db79379cba0b01 12,15,27-35,37,46,48-79,81,136-138,170-175,183
+frontend/src/components/InvestmentInput.js
+  35db79379cba0b01 5
+frontend/src/components/TimeHorizonInput.js
+  35db79379cba0b01 5
+frontend/src/components/ResultsCard.js
+  35db79379cba0b01 5-6,9-69,71-72,74-110,112-114
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.17",
+  "base_commit_sha": "04404db4f43ac1a6a7f5644b9e30898471b62fff",
+  "prompts": {
+    "35db79379cba0b01": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b53550d5-28c2-4072-b360-2291519aaf0a",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Aarsh Roongta <aarshroongta1@gmail.com>",
+      "messages": [],
+      "total_additions": 439,
+      "total_deletions": 156,
+      "accepted_lines": 422,
+      "overriden_lines": 0
+    }
+  }
+}
