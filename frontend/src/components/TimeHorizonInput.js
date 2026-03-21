@@ -1,22 +1,34 @@
-function TimeHorizonInput({ years, onYearsChange }) {
+function TimeHorizonInput({ duration, unit, onDurationChange, onUnitChange }) {
   return (
     <div className="field">
-      <label className="label" htmlFor="years-input">
+      <label className="label" htmlFor="duration-input">
         Time Horizon <span className="required">*</span>
       </label>
-      <div className="input-wrapper">
-        <input
-          id="years-input"
-          type="number"
-          className="input input-with-suffix"
-          placeholder="10"
-          min="1"
-          max="50"
-          step="1"
-          value={years}
-          onChange={(e) => onYearsChange(e.target.value)}
-        />
-        <span className="input-suffix">years</span>
+      <div className="time-horizon-row">
+        <div className="input-wrapper time-horizon-input">
+          <input
+            id="duration-input"
+            type="number"
+            className="input"
+            placeholder="10"
+            min="1"
+            step="1"
+            value={duration}
+            onChange={(e) => onDurationChange(e.target.value)}
+          />
+        </div>
+        <div className="time-unit-toggle">
+          {['days', 'months', 'years'].map((u) => (
+            <button
+              key={u}
+              type="button"
+              className={`time-unit-btn ${unit === u ? 'time-unit-btn--active' : ''}`}
+              onClick={() => onUnitChange(u)}
+            >
+              {u}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );

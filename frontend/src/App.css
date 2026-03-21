@@ -163,31 +163,94 @@ body {
   gap: 1.5rem;
 }
 
-/* --- Empty State --- */
-.empty-state {
+/* --- Welcome State --- */
+.welcome {
+  width: 100%;
   display: flex;
   flex-direction: column;
+  gap: 1rem;
+}
+
+.welcome-header {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 4rem 2rem;
-  height: 100%;
-  min-height: 400px;
+  gap: 0.5rem;
 }
 
-.empty-state-icon {
-  margin-bottom: 1.25rem;
-  opacity: 0.5;
-}
-
-.empty-state-text {
+.welcome-label {
   font-family: 'Outfit', sans-serif;
-  font-size: 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #9a9488;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.insights-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.85rem;
+}
+
+.insight-card {
+  background: #faf7f2;
+  border-radius: 12px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  text-decoration: none;
+  border: 1px solid #ddd7cc;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease;
+}
+
+.insight-card:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  transform: translateY(-3px);
+}
+
+.insight-sentiment {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  align-self: flex-start;
+}
+
+.insight-sentiment--bullish {
+  background: #e6f0e6;
+  color: #2e7a3a;
+}
+
+.insight-sentiment--bearish {
+  background: #f8e8e8;
+  color: #a84848;
+}
+
+.insight-sentiment--neutral {
+  background: #eee8e0;
+  color: #8b6b4a;
+}
+
+.insight-headline {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #2d2a26;
+  line-height: 1.45;
+}
+
+.insight-source {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.75rem;
   font-weight: 400;
   color: #9a9488;
-  max-width: 300px;
-  line-height: 1.6;
 }
+
 
 @keyframes fadeIn {
   from { opacity: 0; }
@@ -220,6 +283,50 @@ body {
 .required {
   color: #a84848;
   font-weight: 600;
+}
+
+/* --- Time Horizon --- */
+.time-horizon-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.time-horizon-input {
+  flex: 1;
+}
+
+.time-unit-toggle {
+  display: flex;
+  background: #f0ebe3;
+  border-radius: 10px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.time-unit-btn {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: #9a9488;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 0.6rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: capitalize;
+}
+
+.time-unit-btn--active {
+  background: #3a5a8c;
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 1px 4px rgba(58, 90, 140, 0.25);
+}
+
+.time-unit-btn:hover:not(.time-unit-btn--active) {
+  color: #2d2a26;
 }
 
 /* --- Select --- */
