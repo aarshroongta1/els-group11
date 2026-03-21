@@ -14,7 +14,7 @@ frontend/build/
 .vscode/
 
 # Secrets
-backend/src/main/resources/application.properties
+.env
 
 # OS
 .DS_Store
