@@ -97,9 +97,70 @@ body {
   flex: 1;
   display: flex;
   align-items: flex-start;
-  justify-content: center;
-  padding: 2.5rem 2rem;
+  justify-content: stretch;
+  padding: 2rem;
   min-height: calc(100vh - 56px);
+}
+
+/* --- Pills (selected funds) --- */
+.pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #3a5a8c;
+  color: #ffffff;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.3rem 0.5rem 0.3rem 0.7rem;
+  border-radius: 20px;
+  letter-spacing: 0.02em;
+  animation: pillPop 0.2s ease both;
+}
+
+@keyframes pillPop {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.pill-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  color: #ffffff;
+  padding: 0;
+  transition: background 0.2s ease;
+}
+
+.pill-remove:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+/* --- Results Section --- */
+.results-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
 /* --- Empty State --- */
@@ -154,6 +215,11 @@ body {
   color: #8b6b4a;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+}
+
+.required {
+  color: #a84848;
+  font-weight: 600;
 }
 
 /* --- Select --- */
@@ -355,11 +421,63 @@ body {
   margin-top: 0.5rem;
 }
 
-/* --- Results Card (in main panel) --- */
-.results-card {
+/* --- Summary Banner --- */
+.summary-banner {
+  animation: resultsFadeIn 0.4s ease-out both;
+}
+
+.summary-banner-inner {
+  background: linear-gradient(135deg, #2d2a26 0%, #3a3530 100%);
+  border-radius: 16px;
+  padding: 1.75rem 2rem;
+  color: #ffffff;
+  text-align: center;
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.12),
+    0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.summary-label {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 0.35rem;
+}
+
+.summary-value {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 2.5rem;
+  font-weight: 600;
+  line-height: 1.2;
+  margin-bottom: 0.75rem;
+}
+
+.summary-stats {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.summary-divider {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* --- 3-Column Fund Grid --- */
+.fund-columns {
   width: 100%;
-  max-width: 520px;
-  animation: resultsFadeIn 0.5s ease-out both;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.25rem;
 }
 
 @keyframes resultsFadeIn {
@@ -373,77 +491,125 @@ body {
   }
 }
 
-.results-inner {
-  background: linear-gradient(135deg, #3a5a8c 0%, #2e4a73 100%);
-  border-radius: 20px;
-  padding: 2.25rem 2rem;
-  color: #ffffff;
+/* --- Fund Card --- */
+.fund-card {
+  background: #faf7f2;
+  border-radius: 16px;
+  padding: 1.5rem;
   box-shadow:
-    0 4px 16px rgba(58, 90, 140, 0.25),
-    0 2px 6px rgba(0, 0, 0, 0.08);
+    0 1px 3px rgba(0, 0, 0, 0.03),
+    0 6px 24px rgba(0, 0, 0, 0.05);
+  animation: resultsFadeIn 0.5s ease-out both;
+  display: flex;
+  flex-direction: column;
 }
 
-.results-label {
-  font-family: 'Outfit', sans-serif;
-  font-size: 0.75rem;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.75);
-  margin-bottom: 0.4rem;
-}
+.fund-card:nth-child(2) { animation-delay: 0.08s; }
+.fund-card:nth-child(3) { animation-delay: 0.16s; }
 
-.results-value {
-  font-family: 'Fraunces', Georgia, serif;
-  font-size: 2.5rem;
-  font-weight: 600;
-  line-height: 1.2;
+.fund-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 0.75rem;
 }
 
-.results-meta {
-  margin-bottom: 1.25rem;
-}
-
-.results-badge {
-  display: inline-block;
-  background: rgba(255, 255, 255, 0.2);
-  padding: 0.35rem 0.85rem;
-  border-radius: 20px;
+.fund-card-ticker {
   font-family: 'Outfit', sans-serif;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #ffffff;
-  backdrop-filter: blur(10px);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #2d2a26;
+  letter-spacing: 0.03em;
 }
 
-.results-details {
+.fund-card-return-badge {
+  background: #e6f0e6;
+  color: #2e7a3a;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.65rem;
+  border-radius: 12px;
+}
+
+.fund-card-value {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 1.65rem;
+  font-weight: 600;
+  color: #2d2a26;
+  line-height: 1.2;
+}
+
+.fund-card-gain {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #2e7a3a;
+  margin-top: 0.15rem;
+  margin-bottom: 1rem;
+}
+
+/* --- Growth Chart --- */
+.fund-card-chart {
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 0.75rem 0.5rem 0.25rem;
+  margin-bottom: 1rem;
+  border: 1px solid #ece8e0;
+}
+
+.growth-chart {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.chart-label {
+  font-family: 'Outfit', sans-serif;
+  font-size: 7px;
+  fill: #9a9488;
+  font-weight: 500;
+}
+
+/* --- Fund Stats --- */
+.fund-card-stats {
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
-  padding-top: 1rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  gap: 0.5rem;
+  border-top: 1px solid #ece8e0;
+  padding-top: 0.85rem;
 }
 
-.results-detail-row {
+.fund-stat {
   display: flex;
   justify-content: space-between;
   align-items: center;
   font-family: 'Outfit', sans-serif;
-  font-size: 0.875rem;
 }
 
-.results-detail-label {
-  color: rgba(255, 255, 255, 0.8);
+.fund-stat-label {
+  font-size: 0.78rem;
   font-weight: 400;
+  color: #9a9488;
 }
 
-.results-detail-value {
-  color: #ffffff;
+.fund-stat-value {
+  font-size: 0.82rem;
   font-weight: 600;
+  color: #2d2a26;
 }
 
 /* --- Responsive --- */
+@media (max-width: 1024px) {
+  .fund-columns {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  }
+
+  .summary-value {
+    font-size: 2rem;
+  }
+}
+
 @media (max-width: 768px) {
   .navbar {
     padding: 0.85rem 1.25rem;
@@ -468,7 +634,7 @@ body {
 
   .main-panel {
     min-height: 300px;
-    padding: 1.5rem 1rem;
+    padding: 1.25rem 1rem;
   }
 
   .empty-state {
@@ -476,7 +642,11 @@ body {
     padding: 2rem 1rem;
   }
 
-  .results-value {
-    font-size: 2rem;
+  .fund-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .summary-value {
+    font-size: 1.75rem;
   }
 }

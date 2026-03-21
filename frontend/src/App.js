@@ -9,10 +9,10 @@ const API_BASE_URL = 'http://localhost:8080/api';
 
 function App() {
   const [funds, setFunds] = useState([]);
-  const [selectedFund, setSelectedFund] = useState('');
+  const [selectedFunds, setSelectedFunds] = useState([]);
   const [amount, setAmount] = useState('');
   const [years, setYears] = useState('');
-  const [result, setResult] = useState(null);
+  const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -24,8 +24,17 @@ function App() {
       .catch(err => setError('Failed to load mutual funds'));
   }, []);
 
+  const handleAddFund = (ticker) => {
+    setSelectedFunds((prev) => [...prev, ticker]);
+  };
+
+  const handleRemoveFund = (ticker) => {
+    setSelectedFunds((prev) => prev.filter((t) => t !== ticker));
+    setResults((prev) => prev.filter((r) => r.fundTicker !== ticker));
+  };
+
   const isFormValid =
-    selectedFund &&
+    selectedFunds.length > 0 &&
     amount &&
     years &&
     parseFloat(amount) > 0 &&
@@ -34,23 +43,42 @@ function App() {
   const handleCalculate = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/calculate?ticker=${selectedFund}&amount=${amount}&years=${years}`
+      const allResults = await Promise.all(
+        selectedFunds.map(async (ticker) => {
+          const response = await fetch(
+            `${API_BASE_URL}/calculate?ticker=${ticker}&amount=${amount}&years=${years}`
+          );
+          const data = await response.json();
+          const returnPct = ((data.futureValue - data.principal) / data.principal) * 100;
+          const annualReturn = data.expectedReturn;
+          const numYears = data.years;
+          const principal = data.principal;
+
+          // Build year-by-year growth data for the chart
+          const yearlyData = [];
+          for (let y = 0; y <= numYears; y++) {
+            yearlyData.push({
+              year: y,
+              value: principal * Math.exp(annualReturn * y)
+            });
+          }
+
+          return {
+            futureValue: data.futureValue,
+            fundTicker: data.ticker,
+            initialAmount: principal,
+            years: numYears,
+            returnPct,
+            expectedReturn: data.expectedReturn,
+            beta: data.beta,
+            riskFreeRate: data.riskFreeRate,
+            yearlyData
+          };
+        })
       );
-      const data = await response.json();
-      
-      // Transform backend response to match ResultsCard format
-      const returnPct = ((data.futureValue - data.principal) / data.principal) * 100;
-      
-      setResult({
-        futureValue: data.futureValue,
-        fundTicker: data.ticker,
-        initialAmount: data.principal,
-        years: data.years,
-        returnPct: returnPct
-      });
+      setResults(allResults);
     } catch (err) {
       setError('Failed to calculate future value');
     } finally {
@@ -105,8 +133,9 @@ const handleRecommend = async () => {
           <div className="form">
             <FundSelector
               funds={funds}
-              selectedFund={selectedFund}
-              onFundChange={setSelectedFund}
+              selectedFunds={selectedFunds}
+              onAddFund={handleAddFund}
+              onRemoveFund={handleRemoveFund}
             />
             <InvestmentInput
               amount={amount}
@@ -138,8 +167,12 @@ const handleRecommend = async () => {
 
 
         <main className="main-panel">
-          {result ? (
-            <ResultsCard result={result} />
+          {results.length > 0 ? (
+            <div className="fund-columns">
+              {results.map((result) => (
+                <ResultsCard key={result.fundTicker} result={result} />
+              ))}
+            </div>
           ) : (
             <div className="empty-state">
               <div className="empty-state-icon">
@@ -147,7 +180,7 @@ const handleRecommend = async () => {
                   <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
                 </svg>
               </div>
-              <p className="empty-state-text">Select a fund and enter your investment details to see projected returns.</p>
+              <p className="empty-state-text">Select up to 3 funds and enter your investment details to compare projected returns side by side.</p>
             </div>
           )}
         </main>

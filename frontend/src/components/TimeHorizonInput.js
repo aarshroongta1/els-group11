@@ -2,7 +2,7 @@ function TimeHorizonInput({ years, onYearsChange }) {
   return (
     <div className="field">
       <label className="label" htmlFor="years-input">
-        Time Horizon
+        Time Horizon <span className="required">*</span>
       </label>
       <div className="input-wrapper">
         <input

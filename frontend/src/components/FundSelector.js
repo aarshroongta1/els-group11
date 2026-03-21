@@ -1,20 +1,32 @@
-function FundSelector({ funds, selectedFund, onFundChange }) {
+const MAX_FUNDS = 3;
+
+function FundSelector({ funds, selectedFunds, onAddFund, onRemoveFund }) {
+  const atLimit = selectedFunds.length >= MAX_FUNDS;
+  const availableFunds = funds.filter(
+    (fund) => !selectedFunds.includes(fund.ticker)
+  );
+
   return (
     <div className="field">
       <label className="label" htmlFor="fund-select">
-        Select Fund
+        Select Funds ({selectedFunds.length}/{MAX_FUNDS}) <span className="required">*</span>
       </label>
       <div className="select-wrapper">
         <select
           id="fund-select"
           className="select"
-          value={selectedFund}
-          onChange={(e) => onFundChange(e.target.value)}
+          value=""
+          disabled={atLimit}
+          onChange={(e) => {
+            if (e.target.value) onAddFund(e.target.value);
+          }}
         >
           <option value="" disabled>
-            Choose a mutual fund...
+            {atLimit
+              ? 'Maximum funds selected'
+              : 'Choose a mutual fund...'}
           </option>
-          {funds.map((fund) => (
+          {availableFunds.map((fund) => (
             <option key={fund.ticker} value={fund.ticker}>
               {fund.ticker} — {fund.name}
             </option>
@@ -36,6 +48,30 @@ function FundSelector({ funds, selectedFund, onFundChange }) {
           />
         </svg>
       </div>
+
+      {selectedFunds.length > 0 && (
+        <div className="pills">
+          {selectedFunds.map((ticker) => (
+            <span key={ticker} className="pill">
+              {ticker}
+              <button
+                className="pill-remove"
+                onClick={() => onRemoveFund(ticker)}
+                aria-label={`Remove ${ticker}`}
+              >
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path
+                    d="M3 3L9 9M9 3L3 9"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
