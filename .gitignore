@@ -13,5 +13,8 @@ frontend/build/
 *.iml
 .vscode/
 
+# Secrets
+backend/src/main/resources/application.properties
+
 # OS
 .DS_Store

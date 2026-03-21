@@ -91,48 +91,66 @@ const handleRecommend = async () => {
 };
   return (
     <div className="app">
-      <div className="card">
-        <header className="header">
-          <h1 className="greeting">Mutual Fund<br />Calculator</h1>
-          <p className="subtitle">Estimate your investment growth using a CAPM-based projection model.</p>
-          <div className="decorative-line" aria-hidden="true" />
-        </header>
+      <nav className="navbar">
+        <h1 className="navbar-title">Mutual Funds Calculator</h1>
+      </nav>
 
-        <div className="form">
-          <FundSelector
-            funds={funds}
-            selectedFund={selectedFund}
-            onFundChange={setSelectedFund}
-          />
-          <InvestmentInput
-            amount={amount}
-            onAmountChange={setAmount}
-          />
-          <TimeHorizonInput
-            years={years}
-            onYearsChange={setYears}
-          />
+      <div className="app-content">
+        <aside className="sidebar">
+          <div className="sidebar-heading">
+            <span className="sidebar-label">Investment Details</span>
+            <div className="decorative-line" aria-hidden="true" />
+          </div>
 
-          <button
-            className="button"
-            disabled={!isFormValid || loading}
-            onClick={handleCalculate}
-          >
-            {loading ? 'Calculating...' : 'Calculate Future Value'}
-          </button>
-          //recommendation button
-           <button
-             className="button"
-             disabled={loading}
-             onClick={handleRecommend}
-           >
-             Get Recommendation
-           </button>
+          <div className="form">
+            <FundSelector
+              funds={funds}
+              selectedFund={selectedFund}
+              onFundChange={setSelectedFund}
+            />
+            <InvestmentInput
+              amount={amount}
+              onAmountChange={setAmount}
+            />
+            <TimeHorizonInput
+              years={years}
+              onYearsChange={setYears}
+            />
 
-          {error && <div className="error">{error}</div>}
-        </div>
+            <button
+              className="button"
+              disabled={!isFormValid || loading}
+              onClick={handleCalculate}
+            >
+              {loading ? 'Calculating...' : 'Calculate Future Value'}
+            </button>
+            <button
+              className="button button-secondary"
+              disabled={loading}
+              onClick={handleRecommend}
+            >
+              Get Recommendation
+            </button>
 
-        {result && <ResultsCard result={result} />}
+            {error && <div className="error">{error}</div>}
+          </div>
+        </aside>
+
+
+        <main className="main-panel">
+          {result ? (
+            <ResultsCard result={result} />
+          ) : (
+            <div className="empty-state">
+              <div className="empty-state-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#b8b2a8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                </svg>
+              </div>
+              <p className="empty-state-text">Select a fund and enter your investment details to see projected returns.</p>
+            </div>
+          )}
+        </main>
       </div>
     </div>
   );

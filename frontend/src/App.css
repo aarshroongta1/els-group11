@@ -1,6 +1,6 @@
 /* ============================================
    Warm Minimalist — Mutual Fund Calculator
-   Cozy premium fintech aesthetic
+   Navbar + sticky sidebar layout
    ============================================ */
 
 /* --- Reset & Base --- */
@@ -22,73 +22,115 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* --- App Container --- */
+/* --- App Shell --- */
 .app {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 2.5rem 1.25rem;
-  gap: 1.5rem;
 }
 
-/* --- Main Card --- */
-.card {
-  width: 100%;
-  max-width: 460px;
-  background: #faf7f2;
-  border: none;
-  border-radius: 20px;
-  box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.03),
-    0 8px 30px rgba(0, 0, 0, 0.05);
-  padding: 2.75rem 2.5rem 2.25rem;
-  animation: cardFadeUp 0.6s cubic-bezier(0.23, 1, 0.32, 1) both;
+/* --- Navbar --- */
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: #2d2a26;
+  padding: 1rem 2.5rem;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
 }
 
-@keyframes cardFadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* --- Header / Greeting --- */
-.header {
-  margin-bottom: 2rem;
-}
-
-.greeting {
+.navbar-title {
   font-family: 'Fraunces', 'Georgia', serif;
   font-optical-sizing: auto;
-  font-weight: 500;
-  font-size: 1.65rem;
-  line-height: 1.25;
-  color: #2d2a26;
+  font-weight: 600;
+  font-size: 1.35rem;
+  color: #ffffff;
   letter-spacing: -0.01em;
+  text-align: center;
 }
 
-.subtitle {
-  margin-top: 0.5rem;
+/* --- Content Area (sidebar + main) --- */
+.app-content {
+  display: flex;
+  flex: 1;
+  animation: fadeIn 0.5s ease both;
+}
+
+/* --- Sidebar --- */
+.sidebar {
+  width: 340px;
+  min-width: 300px;
+  background: #faf7f2;
+  border-right: 1px solid #e8e3da;
+  padding: 2rem 1.75rem;
+  position: sticky;
+  top: 56px; /* navbar height */
+  height: calc(100vh - 56px);
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.sidebar-heading {
+  margin-bottom: 1.5rem;
+}
+
+.sidebar-label {
   font-family: 'Outfit', sans-serif;
-  font-size: 0.95rem;
-  font-weight: 400;
-  color: #9a9488;
-  line-height: 1.5;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #8b6b4a;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .decorative-line {
-  margin-top: 1.25rem;
+  margin-top: 0.75rem;
   width: 32px;
   height: 2px;
   border-radius: 1px;
   background-color: #3a5a8c;
   opacity: 0.6;
+}
+
+/* --- Main Panel --- */
+.main-panel {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 2.5rem 2rem;
+  min-height: calc(100vh - 56px);
+}
+
+/* --- Empty State --- */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 4rem 2rem;
+  height: 100%;
+  min-height: 400px;
+}
+
+.empty-state-icon {
+  margin-bottom: 1.25rem;
+  opacity: 0.5;
+}
+
+.empty-state-text {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1rem;
+  font-weight: 400;
+  color: #9a9488;
+  max-width: 300px;
+  line-height: 1.6;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* --- Form --- */
@@ -123,7 +165,7 @@ body {
   width: 100%;
   appearance: none;
   -webkit-appearance: none;
-  background: #f5f1eb;
+  background: #f0ebe3;
   border: 2px solid transparent;
   border-radius: 12px;
   padding: 0.9rem 2.5rem 0.9rem 1.1rem;
@@ -169,7 +211,7 @@ body {
 
 .input {
   width: 100%;
-  background: #f5f1eb;
+  background: #f0ebe3;
   border: 2px solid transparent;
   border-radius: 12px;
   padding: 0.9rem 1.1rem;
@@ -236,7 +278,7 @@ body {
   padding-right: 4rem;
 }
 
-/* --- Button --- */
+/* --- Buttons --- */
 .button {
   margin-top: 0.75rem;
   width: 100%;
@@ -281,6 +323,25 @@ body {
   box-shadow: none;
 }
 
+.button-secondary {
+  background: transparent;
+  color: #3a5a8c;
+  border: 2px solid #3a5a8c;
+  box-shadow: none;
+  margin-top: 0;
+}
+
+.button-secondary:hover:not(:disabled) {
+  background: rgba(58, 90, 140, 0.08);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(58, 90, 140, 0.12);
+}
+
+.button-secondary:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
 /* --- Error Message --- */
 .error {
   padding: 0.85rem 1.1rem;
@@ -294,11 +355,10 @@ body {
   margin-top: 0.5rem;
 }
 
-/* --- Results Card --- */
+/* --- Results Card (in main panel) --- */
 .results-card {
-  margin-top: 1.75rem;
-  padding-top: 1.75rem;
-  border-top: 1px solid #e8e3da;
+  width: 100%;
+  max-width: 520px;
   animation: resultsFadeIn 0.5s ease-out both;
 }
 
@@ -315,8 +375,8 @@ body {
 
 .results-inner {
   background: linear-gradient(135deg, #3a5a8c 0%, #2e4a73 100%);
-  border-radius: 16px;
-  padding: 1.75rem 1.5rem;
+  border-radius: 20px;
+  padding: 2.25rem 2rem;
   color: #ffffff;
   box-shadow:
     0 4px 16px rgba(58, 90, 140, 0.25),
@@ -335,7 +395,7 @@ body {
 
 .results-value {
   font-family: 'Fraunces', Georgia, serif;
-  font-size: 2.25rem;
+  font-size: 2.5rem;
   font-weight: 600;
   line-height: 1.2;
   margin-bottom: 0.75rem;
@@ -384,16 +444,39 @@ body {
 }
 
 /* --- Responsive --- */
-@media (max-width: 540px) {
-  .app {
+@media (max-width: 768px) {
+  .navbar {
+    padding: 0.85rem 1.25rem;
+  }
+
+  .navbar-title {
+    font-size: 1.15rem;
+  }
+
+  .app-content {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    min-width: unset;
+    position: static;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid #e8e3da;
+  }
+
+  .main-panel {
+    min-height: 300px;
+    padding: 1.5rem 1rem;
+  }
+
+  .empty-state {
+    min-height: 200px;
     padding: 2rem 1rem;
   }
 
-  .card {
-    padding: 2rem 1.75rem 1.75rem;
-  }
-
-  .greeting {
-    font-size: 1.4rem;
+  .results-value {
+    font-size: 2rem;
   }
 }
