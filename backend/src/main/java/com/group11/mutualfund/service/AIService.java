@@ -1,6 +1,7 @@
 package com.group11.mutualfund.service;
 
 import com.group11.mutualfund.model.UserInput;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.http.MediaType;
@@ -14,17 +15,13 @@ public class AIService {
 
     private final WebClient webClient;
 
-    public AIService() {
-        // Step 1: Get the API key from the environment variable
-        String apiKey = System.getenv("OPENAI_API_KEY");
-
-
-        // Step 2: Check if the API key exists
+    public AIService(@Value("${openai.api.key:}") String apiKey) {
         if (apiKey == null || apiKey.isEmpty()) {
-            throw new RuntimeException("OPENAI_API_KEY environment variable not set!");
+            System.err.println("WARNING: OPENAI_API_KEY not set. AI recommendations will use fallback.");
+            this.webClient = null;
+            return;
         }
 
-        // Step 3: Build the WebClient with the API key
         this.webClient = WebClient.builder()
                 .baseUrl("https://api.openai.com/v1")
                 .defaultHeader("Authorization", "Bearer " + apiKey)
@@ -32,6 +29,13 @@ public class AIService {
     }
 
     public Map<String, Object> getPortfolioRecommendation(UserInput input, List<String> tickers) {
+        if (webClient == null) {
+            return Map.of(
+                    "recommendedFunds", List.of("VFIAX", "FXAIX", "VTSAX"),
+                    "explanation", "OPENAI_API_KEY not configured. Default funds provided."
+            );
+        }
+
         String prompt = buildPrompt(input, tickers);
 
         Map<String, Object> response = webClient.post()
