@@ -1,0 +1,27 @@
+frontend/src/components/TimeHorizonInput.js
+  35db79379cba0b01 1,4,7-31
+frontend/src/App.js
+  35db79379cba0b01 14-15,37-45,49,51,61,155-158,189-191,194,196-216,218
+frontend/src/App.css
+  35db79379cba0b01 166-168,171-175,177-231,234-236,239,241-249,288-331
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.17",
+  "base_commit_sha": "ab8ea6a917444ecace5540607223a4ec13b5a6dd",
+  "prompts": {
+    "35db79379cba0b01": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b53550d5-28c2-4072-b360-2291519aaf0a",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Aarsh Roongta <aarshroongta1@gmail.com>",
+      "messages": [],
+      "total_additions": 383,
+      "total_deletions": 229,
+      "accepted_lines": 196,
+      "overriden_lines": 0
+    }
+  }
+}
