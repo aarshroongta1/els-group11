@@ -1,18 +1,18 @@
-import { useState, useEffect } from 'react';
-import FundSelector from './components/FundSelector';
-import InvestmentInput from './components/InvestmentInput';
-import TimeHorizonInput from './components/TimeHorizonInput';
-import ResultsCard from './components/ResultsCard';
-import './App.css';
+import { useState, useEffect } from "react";
+import FundSelector from "./components/FundSelector";
+import InvestmentInput from "./components/InvestmentInput";
+import TimeHorizonInput from "./components/TimeHorizonInput";
+import ResultsCard from "./components/ResultsCard";
+import "./App.css";
 
-const API_BASE_URL = 'http://localhost:8080/api';
+const API_BASE_URL = "http://localhost:8080/api";
 
 function App() {
   const [funds, setFunds] = useState([]);
   const [selectedFunds, setSelectedFunds] = useState([]);
-  const [amount, setAmount] = useState('');
-  const [duration, setDuration] = useState('');
-  const [timeUnit, setTimeUnit] = useState('years');
+  const [amount, setAmount] = useState("");
+  const [duration, setDuration] = useState("");
+  const [timeUnit, setTimeUnit] = useState("years");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -20,9 +20,9 @@ function App() {
   // Fetch mutual funds on component mount
   useEffect(() => {
     fetch(`${API_BASE_URL}/funds`)
-      .then(res => res.json())
-      .then(data => setFunds(data))
-      .catch(err => setError('Failed to load mutual funds'));
+      .then((res) => res.json())
+      .then((data) => setFunds(data))
+      .catch((err) => setError("Failed to load mutual funds"));
   }, []);
 
   const handleAddFund = (ticker) => {
@@ -38,8 +38,8 @@ function App() {
   const getYears = () => {
     const val = parseFloat(duration);
     if (!val || val <= 0) return 0;
-    if (timeUnit === 'months') return val / 12;
-    if (timeUnit === 'days') return val / 365;
+    if (timeUnit === "months") return val / 12;
+    if (timeUnit === "days") return val / 365;
     return val;
   };
 
@@ -58,10 +58,11 @@ function App() {
       const allResults = await Promise.all(
         selectedFunds.map(async (ticker) => {
           const response = await fetch(
-            `${API_BASE_URL}/calculate?ticker=${ticker}&amount=${amount}&years=${getYears()}`
+            `${API_BASE_URL}/calculate?ticker=${ticker}&amount=${amount}&years=${getYears()}`,
           );
           const data = await response.json();
-          const returnPct = ((data.futureValue - data.principal) / data.principal) * 100;
+          const returnPct =
+            ((data.futureValue - data.principal) / data.principal) * 100;
           const annualReturn = data.expectedReturn;
           const numYears = data.years;
           const principal = data.principal;
@@ -71,7 +72,7 @@ function App() {
           for (let y = 0; y <= numYears; y++) {
             yearlyData.push({
               year: y,
-              value: principal * Math.exp(annualReturn * y)
+              value: principal * Math.exp(annualReturn * y),
             });
           }
 
@@ -84,49 +85,48 @@ function App() {
             expectedReturn: data.expectedReturn,
             beta: data.beta,
             riskFreeRate: data.riskFreeRate,
-            yearlyData
+            yearlyData,
           };
-        })
+        }),
       );
       setResults(allResults);
     } catch (err) {
-      setError('Failed to calculate future value');
+      setError("Failed to calculate future value");
     } finally {
       setLoading(false);
     }
   };
-// recommendation button onclick
-const handleRecommend = async () => {
-  setLoading(true);
-  setError(null);
+  // recommendation button onclick
+  const handleRecommend = async () => {
+    setLoading(true);
+    setError(null);
 
-  try {
-    const response = await fetch(`${API_BASE_URL}/recommend`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        riskLevel: "medium" // you can later replace this with user input
-      })
-    });
+    try {
+      const response = await fetch(`${API_BASE_URL}/recommend`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          riskLevel: "medium", // you can later replace this with user input
+        }),
+      });
 
-    const data = await response.json();
-    console.log(data);
+      const data = await response.json();
+      console.log(data);
 
-    alert(
-      "Recommended Funds: " +
-      data.recommendedFunds.join(", ") +
-      "\n\n" +
-      data.explanation
-    );
-
-  } catch (err) {
-    setError("Failed to get recommendation");
-  } finally {
-    setLoading(false);
-  }
-};
+      alert(
+        "Recommended Funds: " +
+          data.recommendedFunds.join(", ") +
+          "\n\n" +
+          data.explanation,
+      );
+    } catch (err) {
+      setError("Failed to get recommendation");
+    } finally {
+      setLoading(false);
+    }
+  };
   return (
     <div className="app">
       <nav className="navbar">
@@ -147,10 +147,7 @@ const handleRecommend = async () => {
               onAddFund={handleAddFund}
               onRemoveFund={handleRemoveFund}
             />
-            <InvestmentInput
-              amount={amount}
-              onAmountChange={setAmount}
-            />
+            <InvestmentInput amount={amount} onAmountChange={setAmount} />
             <TimeHorizonInput
               duration={duration}
               unit={timeUnit}
@@ -163,7 +160,7 @@ const handleRecommend = async () => {
               disabled={!isFormValid || loading}
               onClick={handleCalculate}
             >
-              {loading ? 'Calculating...' : 'Calculate Future Value'}
+              {loading ? "Calculating..." : "Calculate Future Value"}
             </button>
             <button
               className="button button-secondary"
@@ -177,7 +174,6 @@ const handleRecommend = async () => {
           </div>
         </aside>
 
-
         <main className="main-panel">
           {results.length > 0 ? (
             <div className="fund-columns">
@@ -187,35 +183,87 @@ const handleRecommend = async () => {
             </div>
           ) : (
             <div className="welcome">
+              <h2 className="welcome-heading">
+                Select a fund to see projected returns.
+              </h2>
+
               <div className="welcome-header">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9a9488" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#9a9488"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
                   <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
                 </svg>
                 <span className="welcome-label">Market Insights</span>
               </div>
               <div className="insights-row">
-                <a className="insight-card" href="https://www.reuters.com" target="_blank" rel="noopener noreferrer">
-                  <span className="insight-sentiment insight-sentiment--bullish">Bullish</span>
-                  <p className="insight-headline">S&P 500 Index Funds See Record Inflows as Investors Bet on Continued Growth</p>
+                <a
+                  className="insight-card"
+                  href="https://www.reuters.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <span className="insight-sentiment insight-sentiment--bullish">
+                    Bullish
+                  </span>
+                  <p className="insight-headline">
+                    S&P 500 Index Funds See Record Inflows as Investors Bet on
+                    Continued Growth
+                  </p>
                   <span className="insight-source">Reuters</span>
                 </a>
-                <a className="insight-card" href="https://www.cnbc.com" target="_blank" rel="noopener noreferrer">
-                  <span className="insight-sentiment insight-sentiment--neutral">Neutral</span>
-                  <p className="insight-headline">Fed Holds Rates Steady, Markets Weigh Impact on Bond and Equity Funds</p>
+                <a
+                  className="insight-card"
+                  href="https://www.cnbc.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <span className="insight-sentiment insight-sentiment--neutral">
+                    Neutral
+                  </span>
+                  <p className="insight-headline">
+                    Fed Holds Rates Steady, Markets Weigh Impact on Bond and
+                    Equity Funds
+                  </p>
                   <span className="insight-source">CNBC</span>
                 </a>
-                <a className="insight-card" href="https://www.bloomberg.com" target="_blank" rel="noopener noreferrer">
-                  <span className="insight-sentiment insight-sentiment--bullish">Bullish</span>
-                  <p className="insight-headline">Vanguard and Fidelity Lead Mutual Fund Industry With Low-Cost Offerings</p>
+                <a
+                  className="insight-card"
+                  href="https://www.bloomberg.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <span className="insight-sentiment insight-sentiment--bullish">
+                    Bullish
+                  </span>
+                  <p className="insight-headline">
+                    Vanguard and Fidelity Lead Mutual Fund Industry With
+                    Low-Cost Offerings
+                  </p>
                   <span className="insight-source">Bloomberg</span>
                 </a>
-                <a className="insight-card" href="https://www.wsj.com" target="_blank" rel="noopener noreferrer">
-                  <span className="insight-sentiment insight-sentiment--bearish">Bearish</span>
-                  <p className="insight-headline">International Fund Managers Warn of Emerging Market Volatility Ahead</p>
+                <a
+                  className="insight-card"
+                  href="https://www.wsj.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <span className="insight-sentiment insight-sentiment--bearish">
+                    Bearish
+                  </span>
+                  <p className="insight-headline">
+                    International Fund Managers Warn of Emerging Market
+                    Volatility Ahead
+                  </p>
                   <span className="insight-source">WSJ</span>
                 </a>
               </div>
-              <p className="welcome-hint">Select up to 3 funds from the sidebar to compare projected returns.</p>
             </div>
           )}
         </main>

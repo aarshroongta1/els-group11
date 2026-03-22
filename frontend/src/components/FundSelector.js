@@ -1,52 +1,86 @@
+import { useState, useRef, useEffect } from 'react';
+
 const MAX_FUNDS = 3;
 
 function FundSelector({ funds, selectedFunds, onAddFund, onRemoveFund }) {
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const wrapperRef = useRef(null);
+  const inputRef = useRef(null);
+
   const atLimit = selectedFunds.length >= MAX_FUNDS;
-  const availableFunds = funds.filter(
-    (fund) => !selectedFunds.includes(fund.ticker)
+
+  const filtered = funds.filter(
+    (fund) =>
+      !selectedFunds.includes(fund.ticker) &&
+      (fund.ticker.toLowerCase().includes(query.toLowerCase()) ||
+        fund.name.toLowerCase().includes(query.toLowerCase()))
   );
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  const handleSelect = (ticker) => {
+    onAddFund(ticker);
+    setQuery('');
+    setOpen(false);
+    inputRef.current?.blur();
+  };
 
   return (
     <div className="field">
-      <label className="label" htmlFor="fund-select">
+      <label className="label" htmlFor="fund-search">
         Select Funds ({selectedFunds.length}/{MAX_FUNDS}) <span className="required">*</span>
       </label>
-      <div className="select-wrapper">
-        <select
-          id="fund-select"
-          className="select"
-          value=""
-          disabled={atLimit}
-          onChange={(e) => {
-            if (e.target.value) onAddFund(e.target.value);
-          }}
-        >
-          <option value="" disabled>
-            {atLimit
-              ? 'Maximum funds selected'
-              : 'Choose a mutual fund...'}
-          </option>
-          {availableFunds.map((fund) => (
-            <option key={fund.ticker} value={fund.ticker}>
-              {fund.ticker} — {fund.name}
-            </option>
-          ))}
-        </select>
-        <svg
-          className="select-chevron"
-          width="16"
-          height="16"
-          viewBox="0 0 16 16"
-          fill="none"
-        >
-          <path
-            d="M4 6L8 10L12 6"
-            stroke="#9a9488"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+
+      <div className="search-select" ref={wrapperRef}>
+        <div className="search-input-wrapper">
+          <svg className="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9a9488" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8" />
+            <path d="M21 21l-4.35-4.35" />
+          </svg>
+          <input
+            ref={inputRef}
+            id="fund-search"
+            type="text"
+            className="input search-input"
+            placeholder={atLimit ? 'Maximum funds selected' : 'Search by ticker or name...'}
+            value={query}
+            disabled={atLimit}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setOpen(true);
+            }}
+            onFocus={() => setOpen(true)}
           />
-        </svg>
+        </div>
+
+        {open && !atLimit && (
+          <ul className="search-dropdown">
+            {filtered.length > 0 ? (
+              filtered.map((fund) => (
+                <li
+                  key={fund.ticker}
+                  className="search-option"
+                  onMouseDown={() => handleSelect(fund.ticker)}
+                >
+                  <span className="search-option-ticker">{fund.ticker}</span>
+                  <span className="search-option-name">{fund.name}</span>
+                </li>
+              ))
+            ) : (
+              <li className="search-no-results">No funds found</li>
+            )}
+          </ul>
+        )}
       </div>
 
       {selectedFunds.length > 0 && (
