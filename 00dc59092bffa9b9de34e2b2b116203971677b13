@@ -1,0 +1,27 @@
+frontend/src/App.css
+  35db79379cba0b01 79,174-183,298-379
+frontend/src/components/FundSelector.js
+  35db79379cba0b01 1-2,6-10,12-17,20-37,40,43-62,64-83
+frontend/src/App.js
+  35db79379cba0b01 186,188-189
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.17",
+  "base_commit_sha": "00dc59092bffa9b9de34e2b2b116203971677b13",
+  "prompts": {
+    "35db79379cba0b01": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b53550d5-28c2-4072-b360-2291519aaf0a",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Aarsh Roongta <aarshroongta1@gmail.com>",
+      "messages": [],
+      "total_additions": 167,
+      "total_deletions": 40,
+      "accepted_lines": 169,
+      "overriden_lines": 1
+    }
+  }
+}
