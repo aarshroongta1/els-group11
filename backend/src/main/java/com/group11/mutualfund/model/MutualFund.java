@@ -4,10 +4,12 @@ public class MutualFund {
 
     private String ticker;
     private String name;
+    private double expectedReturn;  // Annual expected return (e.g., 0.1642 = 16.42%)
 
-    public MutualFund(String ticker, String name) {
+    public MutualFund(String ticker, String name, double expectedReturn) {
         this.ticker = ticker;
         this.name = name;
+        this.expectedReturn = expectedReturn;
     }
 
     public String getTicker() {
@@ -16,5 +18,9 @@ public class MutualFund {
 
     public String getName() {
         return name;
+    }
+
+    public double getExpectedReturn() {
+        return expectedReturn;
     }
 }

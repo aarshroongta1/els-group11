@@ -53,14 +53,14 @@ public class HelloController {
      * Calculate future value of investment
      * @param ticker Mutual fund ticker symbol
      * @param amount Initial investment amount
-     * @param years Time period in years
+     * @param years Time period in years (supports fractional years)
      * @return FutureValueResponse with detailed calculation
      */
     @GetMapping("/api/calculate")
     public FutureValueResponse calculateFutureValue(
             @RequestParam String ticker,
             @RequestParam double amount,
-            @RequestParam int years
+            @RequestParam double years
     ) {
         return mutualFundService.calculateFutureValue(ticker, amount, years);
     }

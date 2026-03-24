@@ -41,11 +41,14 @@ function GrowthChart({ yearlyData }) {
       {/* Grid lines */}
       {yLabels.map((val, i) => {
         const y = padTop + (1 - (val - minVal) / range) * (height - padTop - padBottom);
+        const formattedVal = val != null && !isNaN(val) 
+          ? (val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val.toFixed(0))
+          : '0';
         return (
           <g key={i}>
             <line x1={padX} y1={y} x2={width - 8} y2={y} stroke="#e8e3da" strokeWidth="0.5" />
             <text x={padX - 4} y={y + 3} textAnchor="end" className="chart-label">
-              {val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val.toFixed(0)}
+              {formattedVal}
             </text>
           </g>
         );
@@ -69,6 +72,12 @@ function GrowthChart({ yearlyData }) {
 
 function ResultsCard({ result }) {
   const gain = result.futureValue - result.initialAmount;
+  
+  // Add defensive checks for undefined values
+  const returnPct = result.returnPct != null ? result.returnPct : 0;
+  const expectedReturn = result.expectedReturn != null ? result.expectedReturn : 0;
+  const beta = result.beta != null ? result.beta : 1.0;
+  const riskFreeRate = result.riskFreeRate != null ? result.riskFreeRate : 0;
 
   return (
     <div className="fund-card">
@@ -76,7 +85,7 @@ function ResultsCard({ result }) {
       <div className="fund-card-header">
         <span className="fund-card-ticker">{result.fundTicker}</span>
         <span className="fund-card-return-badge">
-          +{result.returnPct.toFixed(1)}%
+          +{returnPct.toFixed(1)}%
         </span>
       </div>
 
@@ -95,15 +104,15 @@ function ResultsCard({ result }) {
       <div className="fund-card-stats">
         <div className="fund-stat">
           <span className="fund-stat-label">Expected Return</span>
-          <span className="fund-stat-value">{(result.expectedReturn * 100).toFixed(2)}%</span>
+          <span className="fund-stat-value">{(expectedReturn * 100).toFixed(2)}%</span>
         </div>
         <div className="fund-stat">
           <span className="fund-stat-label">Beta</span>
-          <span className="fund-stat-value">{result.beta.toFixed(2)}</span>
+          <span className="fund-stat-value">{beta.toFixed(2)}</span>
         </div>
         <div className="fund-stat">
           <span className="fund-stat-label">Risk-Free Rate</span>
-          <span className="fund-stat-value">{(result.riskFreeRate * 100).toFixed(2)}%</span>
+          <span className="fund-stat-value">{(riskFreeRate * 100).toFixed(2)}%</span>
         </div>
         <div className="fund-stat">
           <span className="fund-stat-label">Initial Investment</span>

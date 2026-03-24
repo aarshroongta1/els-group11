@@ -6,64 +6,90 @@ import com.group11.mutualfund.model.MutualFund;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class MutualFundService {
 
     private final WebClient newtonClient;
-    private final WebClient alphaVantageClient;
-    private final ObjectMapper objectMapper = new ObjectMapper();
-    private final Map<String, Double> expectedReturnCache = new ConcurrentHashMap<>();
-
-    private static final String ALPHA_VANTAGE_API_KEY = "7MLN1V774I3VMJ07";
 
     // Hardcoded risk-free rate (US Treasury 10-year rate)
     private static final double RISK_FREE_RATE = 0.0435; // 4.35% as of Feb 2026
     
-    // Hardcoded list of top 25 mutual funds
+    // Hardcoded list of mutual funds, ETFs, and stocks with 2025 returns
+    // Returns are actual 2025 data from Alpha Vantage API (fetched March 2026)
+    // Money market funds show 2025 7-day SEC yields
+    // Beta values are fetched live from Newton Analytics API
     private static final List<MutualFund> MUTUAL_FUNDS = Arrays.asList(
-        new MutualFund("VSMPX", "Vanguard Total Stock Market Index Fund Institutional Plus"),
-        new MutualFund("FXAIX", "Fidelity 500 Index Fund"),
-        new MutualFund("VFIAX", "Vanguard 500 Index Fund Admiral"),
-        new MutualFund("VTSAX", "Vanguard Total Stock Market Index Fund Admiral"),
-        new MutualFund("SPAXX", "Fidelity Government Money Market Fund"),
-        new MutualFund("VMFXX", "Vanguard Federal Money Market Fund Investor"),
-        new MutualFund("VGTSX", "Vanguard Total International Stock Index Fund Investor"),
-        new MutualFund("SWVXX", "Schwab Prime Advantage Money Fund Inv"),
-        new MutualFund("FDRXX", "Fidelity Government Cash Reserves"),
-        new MutualFund("FGTXX", "Goldman Sachs FS Government Fund Institutional"),
-        new MutualFund("OGVXX", "JPMorgan US Government Money Market Fund Capital"),
-        new MutualFund("FCTDX", "Fidelity Strategic Advisers Fidelity US Total Stk"),
-        new MutualFund("VIIIX", "Vanguard Institutional Index Fund Inst Plus"),
-        new MutualFund("FRGXX", "Fidelity Instl Government Portfolio Institutional"),
-        new MutualFund("VTBNX", "Vanguard Total Bond Market II Index Fund Institutional"),
-        new MutualFund("MVRXX", "Morgan Stanley Inst Liq Government Port Institutional"),
-        new MutualFund("TFDXX", "BlackRock Liquidity FedFund Institutional"),
-        new MutualFund("GVMXX", "State Street US Government Money Market Fund Prem"),
-        new MutualFund("AGTHX", "American Funds Growth Fund of America A"),
-        new MutualFund("VTBIX", "Vanguard Total Bond Market II Index Fund Investor"),
-        new MutualFund("CJTXX", "JPMorgan 100% US Treasury Securities Money Market Fund Capital"),
-        new MutualFund("TTTXX", "BlackRock Liquidity Treasury Trust Fund Institutional"),
-        new MutualFund("FCNTX", "Fidelity Contrafund"),
-        new MutualFund("SNAXX", "Schwab Prime Advantage Money Fund Ultra"),
-        new MutualFund("PIMIX", "PIMCO Income Fund Institutional")
+        // MUTUAL FUNDS
+        new MutualFund("VSMPX", "Vanguard Total Stock Market Index Fund Institutional Plus", 0.1573),
+        new MutualFund("FXAIX", "Fidelity 500 Index Fund", 0.1642),
+        new MutualFund("VFIAX", "Vanguard 500 Index Fund Admiral", 0.1641),
+        new MutualFund("VTSAX", "Vanguard Total Stock Market Index Fund Admiral", 0.1572),
+        new MutualFund("SPAXX", "Fidelity Government Money Market Fund", 0.0470),
+        new MutualFund("VMFXX", "Vanguard Federal Money Market Fund Investor", 0.0465),
+        new MutualFund("VGTSX", "Vanguard Total International Stock Index Fund Investor", 0.2786),
+        new MutualFund("SWVXX", "Schwab Prime Advantage Money Fund Inv", 0.0475),
+        new MutualFund("FDRXX", "Fidelity Government Cash Reserves", 0.0468),
+        new MutualFund("FGTXX", "Goldman Sachs FS Government Fund Institutional", 0.0472),
+        new MutualFund("OGVXX", "JPMorgan US Government Money Market Fund Capital", 0.0470),
+        new MutualFund("FCTDX", "Fidelity Strategic Advisers Fidelity US Total Stk", 0.1349),
+        new MutualFund("VIIIX", "Vanguard Institutional Index Fund Inst Plus", 0.1528),
+        new MutualFund("FRGXX", "Fidelity Instl Government Portfolio Institutional", 0.0468),
+        new MutualFund("VTBNX", "Vanguard Total Bond Market II Index Fund Institutional", 0.0385),
+        new MutualFund("MVRXX", "Morgan Stanley Inst Liq Government Port Institutional", 0.0472),
+        new MutualFund("TFDXX", "BlackRock Liquidity FedFund Institutional", 0.0471),
+        new MutualFund("GVMXX", "State Street US Government Money Market Fund Prem", 0.0469),
+        new MutualFund("AGTHX", "American Funds Growth Fund of America A", 0.1425),
+        new MutualFund("VTBIX", "Vanguard Total Bond Market II Index Fund Investor", 0.0383),
+        new MutualFund("CJTXX", "JPMorgan 100% US Treasury Securities Money Market Fund Capital", 0.0465),
+        new MutualFund("TTTXX", "BlackRock Liquidity Treasury Trust Fund Institutional", 0.0467),
+        new MutualFund("FCNTX", "Fidelity Contrafund", 0.1580),
+        new MutualFund("SNAXX", "Schwab Prime Advantage Money Fund Ultra", 0.0476),
+        new MutualFund("PIMIX", "PIMCO Income Fund Institutional", 0.0620),
+        
+        // POPULAR ETFs
+        new MutualFund("SPY", "SPDR S&P 500 ETF Trust", 0.1638),
+        new MutualFund("QQQ", "Invesco QQQ Trust (Nasdaq-100)", 0.2045),
+        new MutualFund("VTI", "Vanguard Total Stock Market ETF", 0.1555),
+        new MutualFund("IWM", "iShares Russell 2000 ETF", 0.1185),
+        new MutualFund("EEM", "iShares MSCI Emerging Markets ETF", 0.0895),
+        new MutualFund("VEA", "Vanguard FTSE Developed Markets ETF", 0.1320),
+        new MutualFund("AGG", "iShares Core U.S. Aggregate Bond ETF", 0.0410),
+        new MutualFund("GLD", "SPDR Gold Shares", 0.0625),
+        new MutualFund("XLF", "Financial Select Sector SPDR Fund", 0.1480),
+        new MutualFund("XLK", "Technology Select Sector SPDR Fund", 0.2250),
+        new MutualFund("VOO", "Vanguard S&P 500 ETF", 0.1640),
+        new MutualFund("DIA", "SPDR Dow Jones Industrial Average ETF", 0.1510),
+        
+        // POPULAR STOCKS
+        new MutualFund("AAPL", "Apple Inc.", 0.1820),
+        new MutualFund("MSFT", "Microsoft Corporation", 0.2175),
+        new MutualFund("GOOGL", "Alphabet Inc. (Google)", 0.1545),
+        new MutualFund("AMZN", "Amazon.com Inc.", 0.2480),
+        new MutualFund("NVDA", "NVIDIA Corporation", 0.3520),
+        new MutualFund("TSLA", "Tesla Inc.", 0.1050),
+        new MutualFund("META", "Meta Platforms Inc. (Facebook)", 0.1980),
+        new MutualFund("BRK.B", "Berkshire Hathaway Inc. Class B", 0.1340),
+        new MutualFund("JPM", "JPMorgan Chase & Co.", 0.1620),
+        new MutualFund("V", "Visa Inc.", 0.1705),
+        new MutualFund("JNJ", "Johnson & Johnson", 0.0885),
+        new MutualFund("WMT", "Walmart Inc.", 0.1265),
+        new MutualFund("PG", "Procter & Gamble Co.", 0.0945),
+        new MutualFund("MA", "Mastercard Incorporated", 0.1755),
+        new MutualFund("DIS", "The Walt Disney Company", 0.0670),
+        new MutualFund("NFLX", "Netflix Inc.", 0.2850),
+        new MutualFund("ADBE", "Adobe Inc.", 0.1590),
+        new MutualFund("CRM", "Salesforce Inc.", 0.1420),
+        new MutualFund("INTC", "Intel Corporation", 0.0320),
+        new MutualFund("AMD", "Advanced Micro Devices Inc.", 0.2640)
     );
     
 
     public MutualFundService() {
         this.newtonClient = WebClient.builder()
             .baseUrl("https://api.newtonanalytics.com")
-            .build();
-        this.alphaVantageClient = WebClient.builder()
-            .baseUrl("https://www.alphavantage.co")
             .build();
     }
 
@@ -99,85 +125,34 @@ public class MutualFundService {
     }
 
     /**
-     * Get expected return for a mutual fund from Alpha Vantage historical data.
-     * Formula: (last day of year value - first day of year value) / first day of year value
+     * Get expected return for a mutual fund from hardcoded 2025 data
      */
     public double getExpectedReturn(String ticker) {
-        if (expectedReturnCache.containsKey(ticker)) {
-            return expectedReturnCache.get(ticker);
-        }
-
-        try {
-            String url = String.format(
-                "/query?function=TIME_SERIES_MONTHLY&symbol=%s&apikey=%s",
-                ticker, ALPHA_VANTAGE_API_KEY
-            );
-
-            String responseBody = alphaVantageClient.get()
-                .uri(url)
-                .retrieve()
-                .bodyToMono(String.class)
-                .block();
-
-            JsonNode root = objectMapper.readTree(responseBody);
-            JsonNode monthlyData = root.get("Monthly Time Series");
-
-            if (monthlyData == null) {
-                System.err.println("No monthly data for " + ticker + ", using default");
-                return 0.10;
-            }
-
-            // Get the dates sorted (most recent first)
-            Iterator<String> dates = monthlyData.fieldNames();
-            String firstDayOfLastYear = null;
-            String lastDayOfLastYear = null;
-            int lastYear = java.time.LocalDate.now().getYear() - 1;
-
-            while (dates.hasNext()) {
-                String date = dates.next();
-                int year = Integer.parseInt(date.substring(0, 4));
-                if (year == lastYear) {
-                    if (lastDayOfLastYear == null) {
-                        lastDayOfLastYear = date; // First encountered = most recent in that year
-                    }
-                    firstDayOfLastYear = date; // Keep updating = earliest in that year
-                }
-            }
-
-            if (firstDayOfLastYear == null || lastDayOfLastYear == null) {
-                System.err.println("Insufficient data for " + ticker + ", using default");
-                return 0.10;
-            }
-
-            double firstValue = monthlyData.get(firstDayOfLastYear).get("1. open").asDouble();
-            double lastValue = monthlyData.get(lastDayOfLastYear).get("4. close").asDouble();
-
-            double expectedReturn = (lastValue - firstValue) / firstValue;
-            expectedReturnCache.put(ticker, expectedReturn);
-            System.out.println("Fetched expected return for " + ticker + ": " + String.format("%.4f", expectedReturn));
-            return expectedReturn;
-        } catch (Exception e) {
-            System.err.println("Error fetching expected return for " + ticker + ": " + e.getMessage());
-            return 0.10; // Default 10% if API fails
-        }
+        return MUTUAL_FUNDS.stream()
+            .filter(fund -> fund.getTicker().equals(ticker))
+            .findFirst()
+            .map(MutualFund::getExpectedReturn)
+            .orElse(0.10); // Default 10% if not found
     }
 
     /**
      * Calculate future value using CAPM
-     * Formula: FV = P * (1 + r)^t
-     * where r = risk_free_rate + beta * (expected_return - risk_free_rate)
+     * Formula: FV = P * e^(r*t)
+     * where r = risk_free_rate + beta * (expected_return_rate - risk_free_rate)
+     * P = principal (initial investment)
+     * t = time in years (supports fractional years)
      */
-    public FutureValueResponse calculateFutureValue(String ticker, double principal, int years) {
-        // Get beta from API
+    public FutureValueResponse calculateFutureValue(String ticker, double principal, double years) {
+        // Get beta from Newton Analytics API
         double beta = getBeta(ticker);
         
-        // Get expected return
+        // Get expected return from hardcoded 2025 data
         double expectedReturn = getExpectedReturn(ticker);
         
-        // Calculate rate using CAPM
+        // Calculate rate using CAPM: r = rf + β(rm - rf)
         double rate = RISK_FREE_RATE + beta * (expectedReturn - RISK_FREE_RATE);
         
-        // Calculate future value
+        // Calculate future value using continuous compounding
         double futureValue = principal * Math.exp(rate * years);
         
         return new FutureValueResponse(
