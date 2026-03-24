@@ -10,6 +10,7 @@ function GrowthChart({ yearlyData }) {
   const width = 260;
   const height = 120;
   const padX = 30;
+  const padRight = 20;
   const padTop = 10;
   const padBottom = 24;
 
@@ -18,7 +19,7 @@ function GrowthChart({ yearlyData }) {
   const range = maxVal - minVal || 1;
 
   const points = yearlyData.map((d, i) => {
-    const x = padX + (i / (yearlyData.length - 1)) * (width - padX - 8);
+    const x = padX + (i / (yearlyData.length - 1)) * (width - padX - padRight);
     const y = padTop + (1 - (d.value - minVal) / range) * (height - padTop - padBottom);
     return { x, y, ...d };
   });
@@ -46,7 +47,7 @@ function GrowthChart({ yearlyData }) {
           : '0';
         return (
           <g key={i}>
-            <line x1={padX} y1={y} x2={width - 8} y2={y} stroke="#e8e3da" strokeWidth="0.5" />
+            <line x1={padX} y1={y} x2={width - padRight} y2={y} stroke="#e8e3da" strokeWidth="0.5" />
             <text x={padX - 4} y={y + 3} textAnchor="end" className="chart-label">
               {formattedVal}
             </text>
@@ -57,7 +58,7 @@ function GrowthChart({ yearlyData }) {
       {/* X-axis labels */}
       {points.filter((_, i) => i === 0 || i === points.length - 1 || i === Math.floor(points.length / 2)).map((p) => (
         <text key={p.year} x={p.x} y={height - 6} textAnchor="middle" className="chart-label">
-          Yr {p.year}
+          Yr {p.year.toFixed(2)}
         </text>
       ))}
 
@@ -120,7 +121,7 @@ function ResultsCard({ result }) {
         </div>
         <div className="fund-stat">
           <span className="fund-stat-label">Time Horizon</span>
-          <span className="fund-stat-value">{result.years} yr{result.years !== 1 ? 's' : ''}</span>
+          <span className="fund-stat-value">{result.years.toFixed(2)} yr{result.years !== 1 ? 's' : ''}</span>
         </div>
       </div>
     </div>
