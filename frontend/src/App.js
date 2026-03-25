@@ -4,6 +4,7 @@ import FundSelector from "./components/FundSelector";
 import InvestmentInput from "./components/InvestmentInput";
 import TimeHorizonInput from "./components/TimeHorizonInput";
 import ResultsCard from "./components/ResultsCard";
+import PortfolioView from "./components/PortfolioView";
 import Navbar from "./components/Navbar";
 import AuthPage from "./components/AuthPage";
 import "./App.css";
@@ -63,6 +64,22 @@ function App() {
 
   const handleAuthSuccess = () => {
     setCurrentView("portfolio");
+  };
+
+  const handleSaveInvestment = async (result) => {
+    const fund = funds.find((f) => f.ticker === result.fundTicker);
+    const { error } = await supabase.from("investments").insert({
+      user_id: user.id,
+      ticker: result.fundTicker,
+      fund_name: fund?.name || result.fundTicker,
+      amount: result.initialAmount,
+      years: result.years,
+      future_value: result.futureValue,
+      expected_return: result.expectedReturn,
+      beta: result.beta,
+      return_pct: result.returnPct,
+    });
+    if (error) throw error;
   };
 
   const handleAddFund = (ticker) => {
@@ -213,7 +230,7 @@ function App() {
         {results.length > 0 ? (
           <div className="fund-columns">
             {results.map((result) => (
-              <ResultsCard key={result.fundTicker} result={result} />
+              <ResultsCard key={result.fundTicker} result={result} user={user} onSave={handleSaveInvestment} />
             ))}
           </div>
         ) : (
@@ -313,16 +330,7 @@ function App() {
       if (!user) {
         return <AuthPage onAuthSuccess={handleAuthSuccess} />;
       }
-      // Portfolio view will be implemented by another worktree
-      return (
-        <div className="app-content">
-          <main className="main-panel">
-            <div className="welcome">
-              <h2 className="welcome-heading">Portfolio view coming soon.</h2>
-            </div>
-          </main>
-        </div>
-      );
+      return <PortfolioView />;
     }
     return renderCalculator();
   };
