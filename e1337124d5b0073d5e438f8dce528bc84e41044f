@@ -1,0 +1,29 @@
+frontend/src/supabaseClient.js
+  3c95fa2b6eb29257 1-6
+frontend/src/components/ResultsCard.js
+  3c95fa2b6eb29257 1-2,72-75,78-90,136-150
+frontend/src/components/PortfolioView.js
+  3c95fa2b6eb29257 1-154
+frontend/src/App.css
+  3c95fa2b6eb29257 852-1020
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.19",
+  "base_commit_sha": "e1337124d5b0073d5e438f8dce528bc84e41044f",
+  "prompts": {
+    "3c95fa2b6eb29257": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0afec80f-8a84-4e2e-b321-a8e3143923e3",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Aarsh Roongta <aarshroongta1@gmail.com>",
+      "messages": [],
+      "total_additions": 364,
+      "total_deletions": 1,
+      "accepted_lines": 364,
+      "overriden_lines": 0
+    }
+  }
+}
