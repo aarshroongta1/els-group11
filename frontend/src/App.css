@@ -920,6 +920,20 @@ body {
   text-decoration: underline;
 }
 
+.auth-confirmation {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.auth-confirmation-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.9rem;
+  color: #1a2332;
+  line-height: 1.6;
+}
+
 /* --- Enhanced Navbar --- */
 .navbar-content {
   display: flex;

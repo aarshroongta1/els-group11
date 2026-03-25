@@ -7,6 +7,7 @@ function AuthPage({ onAuthSuccess }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [confirmationSent, setConfirmationSent] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -23,6 +24,9 @@ function AuthPage({ onAuthSuccess }) {
 
       if (result.error) {
         setError(result.error.message);
+      } else if (isSignUp) {
+        // Email confirmation is enabled — user needs to verify before signing in
+        setConfirmationSent(true);
       } else {
         if (onAuthSuccess) {
           onAuthSuccess(result.data.user);
@@ -44,6 +48,24 @@ function AuthPage({ onAuthSuccess }) {
           </h2>
         </div>
         <div className="auth-card-body">
+          {confirmationSent ? (
+            <div className="auth-confirmation">
+              <p className="auth-confirmation-text">
+                A verification link has been sent to <strong>{email}</strong>. Please check your inbox and verify your email, then sign in.
+              </p>
+              <button
+                className="button"
+                onClick={() => {
+                  setConfirmationSent(false);
+                  setIsSignUp(false);
+                  setError(null);
+                }}
+              >
+                Go to Sign In
+              </button>
+            </div>
+          ) : (
+          <>
           <form className="auth-form" onSubmit={handleSubmit}>
             {error && <div className="auth-error">{error}</div>}
 
@@ -100,6 +122,8 @@ function AuthPage({ onAuthSuccess }) {
               {isSignUp ? "Sign In" : "Sign Up"}
             </button>
           </div>
+          </>
+          )}
         </div>
       </div>
     </div>
