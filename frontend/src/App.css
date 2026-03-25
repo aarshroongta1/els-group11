@@ -13,9 +13,9 @@
 }
 
 body {
-  background-color: #f0ebe3;
+  background-color: #E8EEF5;
   color: #2d2a26;
-  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-weight: 400;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
@@ -34,16 +34,15 @@ body {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: #2d2a26;
+  background: #003A70;
   padding: 1rem 2.5rem;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
 }
 
 .navbar-title {
-  font-family: 'Fraunces', 'Georgia', serif;
-  font-optical-sizing: auto;
+  font-family: 'Source Serif 4', Georgia, serif;
   font-weight: 600;
-  font-size: 1.35rem;
+  font-size: 1.75rem;
   color: #ffffff;
   letter-spacing: -0.01em;
   text-align: center;
@@ -60,8 +59,8 @@ body {
 .sidebar {
   width: 340px;
   min-width: 300px;
-  background: #faf7f2;
-  border-right: 1px solid #e8e3da;
+  background: #ffffff;
+  border-right: 1px solid #c8d6e5;
   padding: 2rem 1.75rem;
   position: sticky;
   top: 56px; /* navbar height */
@@ -75,10 +74,10 @@ body {
 }
 
 .sidebar-label {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 1rem;
   font-weight: 600;
-  color: #8b6b4a;
+  color: #003A70;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -88,7 +87,7 @@ body {
   width: 32px;
   height: 2px;
   border-radius: 1px;
-  background-color: #3a5a8c;
+  background-color: #003A70;
   opacity: 0.6;
 }
 
@@ -114,9 +113,9 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  background: #3a5a8c;
+  background: #003A70;
   color: #ffffff;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 0.78rem;
   font-weight: 600;
   padding: 0.3rem 0.5rem 0.3rem 0.7rem;
@@ -172,7 +171,7 @@ body {
 }
 
 .welcome-heading {
-  font-family: 'Fraunces', Georgia, serif;
+  font-family: 'Source Serif 4', Georgia, serif;
   font-size: 1.75rem;
   font-weight: 500;
   color: #2d2a26;
@@ -188,7 +187,7 @@ body {
 }
 
 .welcome-label {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 0.75rem;
   font-weight: 600;
   color: #9a9488;
@@ -203,14 +202,14 @@ body {
 }
 
 .insight-card {
-  background: #faf7f2;
+  background: #ffffff;
   border-radius: 12px;
   padding: 1.25rem;
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
   text-decoration: none;
-  border: 1px solid #ddd7cc;
+  border: 1px solid #c8d6e5;
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
   transition: all 0.2s ease;
 }
@@ -221,7 +220,7 @@ body {
 }
 
 .insight-sentiment {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 0.7rem;
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -242,12 +241,12 @@ body {
 }
 
 .insight-sentiment--neutral {
-  background: #eee8e0;
-  color: #8b6b4a;
+  background: #D1D5DB;
+  color: #374151;
 }
 
 .insight-headline {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 0.88rem;
   font-weight: 500;
   color: #2d2a26;
@@ -255,10 +254,11 @@ body {
 }
 
 .insight-source {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 0.75rem;
   font-weight: 400;
   color: #9a9488;
+  margin-top: auto;
 }
 
 
@@ -282,10 +282,10 @@ body {
 }
 
 .label {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 0.75rem;
   font-weight: 500;
-  color: #8b6b4a;
+  color: #003A70;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -323,8 +323,8 @@ body {
   left: 0;
   right: 0;
   margin-top: 4px;
-  background: #faf7f2;
-  border: 1px solid #e8e3da;
+  background: #ffffff;
+  border: 1px solid #c8d6e5;
   border-radius: 10px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
   max-height: 200px;
@@ -345,15 +345,15 @@ body {
 }
 
 .search-option:hover {
-  background: #f0ebe3;
+  background: #E8EEF5;
 }
 
 .search-option-ticker {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 0.78rem;
   font-weight: 700;
-  color: #3a5a8c;
-  background: #e8eef5;
+  color: #003A70;
+  background: #D6E4F0;
   padding: 0.15rem 0.45rem;
   border-radius: 5px;
   letter-spacing: 0.03em;
@@ -361,7 +361,7 @@ body {
 }
 
 .search-option-name {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 0.82rem;
   color: #2d2a26;
   white-space: nowrap;
@@ -372,9 +372,9 @@ body {
 .search-no-results {
   padding: 0.75rem;
   text-align: center;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 0.82rem;
-  color: #9a9488;
+  color: #6B7C93;
 }
 
 /* --- Time Horizon --- */
@@ -390,17 +390,17 @@ body {
 
 .time-unit-toggle {
   display: flex;
-  background: #f0ebe3;
+  background: #E8EEF5;
   border-radius: 10px;
   padding: 3px;
   gap: 2px;
 }
 
 .time-unit-btn {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 0.72rem;
   font-weight: 500;
-  color: #9a9488;
+  color: #6B7C93;
   background: transparent;
   border: none;
   border-radius: 8px;
@@ -411,14 +411,14 @@ body {
 }
 
 .time-unit-btn--active {
-  background: #3a5a8c;
+  background: #003A70;
   color: #ffffff;
   font-weight: 600;
-  box-shadow: 0 1px 4px rgba(58, 90, 140, 0.25);
+  box-shadow: 0 1px 4px rgba(0, 58, 112, 0.3);
 }
 
 .time-unit-btn:hover:not(.time-unit-btn--active) {
-  color: #2d2a26;
+  color: #1a2332;
 }
 
 /* --- Select --- */
@@ -430,11 +430,11 @@ body {
   width: 100%;
   appearance: none;
   -webkit-appearance: none;
-  background: #f0ebe3;
+  background: #E8EEF5;
   border: 2px solid transparent;
   border-radius: 12px;
   padding: 0.9rem 2.5rem 0.9rem 1.1rem;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 0.925rem;
   font-weight: 400;
   color: #2d2a26;
@@ -448,15 +448,15 @@ body {
 }
 
 .select:focus {
-  border-color: #3a5a8c;
+  border-color: #003A70;
   box-shadow:
     inset 0 1px 3px rgba(0, 0, 0, 0.04),
-    0 0 0 3px rgba(58, 90, 140, 0.12);
-  background: #faf7f2;
+    0 0 0 3px rgba(0, 58, 112, 0.15);
+  background: #E8EEF5;
 }
 
 .select option[value=""][disabled] {
-  color: #b8b2a8;
+  color: #94A3B8;
 }
 
 .select-chevron {
@@ -476,11 +476,11 @@ body {
 
 .input {
   width: 100%;
-  background: #f0ebe3;
+  background: #E8EEF5;
   border: 2px solid transparent;
   border-radius: 12px;
   padding: 0.9rem 1.1rem;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 0.925rem;
   font-weight: 400;
   color: #2d2a26;
@@ -493,15 +493,15 @@ body {
 }
 
 .input::placeholder {
-  color: #b8b2a8;
+  color: #94A3B8;
 }
 
 .input:focus {
-  border-color: #3a5a8c;
+  border-color: #003A70;
   box-shadow:
     inset 0 1px 3px rgba(0, 0, 0, 0.04),
-    0 0 0 3px rgba(58, 90, 140, 0.12);
-  background: #faf7f2;
+    0 0 0 3px rgba(0, 58, 112, 0.15);
+  background: #E8EEF5;
 }
 
 /* Remove number input spinners */
@@ -517,10 +517,10 @@ body {
 .input-prefix {
   position: absolute;
   left: 1.1rem;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 0.925rem;
   font-weight: 500;
-  color: #9a9488;
+  color: #6B7C93;
   pointer-events: none;
   z-index: 1;
 }
@@ -532,10 +532,10 @@ body {
 .input-suffix {
   position: absolute;
   right: 1.1rem;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 0.82rem;
   font-weight: 500;
-  color: #9a9488;
+  color: #6B7C93;
   pointer-events: none;
 }
 
@@ -548,9 +548,9 @@ body {
   margin-top: 0.75rem;
   width: 100%;
   padding: 1rem 1.5rem;
-  background: #3a5a8c;
+  background: #003A70;
   color: #ffffff;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 0.95rem;
   font-weight: 600;
   letter-spacing: 0.01em;
@@ -558,7 +558,7 @@ body {
   border-radius: 12px;
   cursor: pointer;
   box-shadow:
-    0 2px 8px rgba(58, 90, 140, 0.2),
+    0 2px 8px rgba(0, 58, 112, 0.25),
     0 1px 3px rgba(0, 0, 0, 0.06);
   transition:
     background-color 0.3s ease,
@@ -568,17 +568,17 @@ body {
 }
 
 .button:hover:not(:disabled) {
-  background: #2e4a73;
+  background: #002A54;
   transform: translateY(-2px);
   box-shadow:
-    0 6px 20px rgba(58, 90, 140, 0.28),
+    0 6px 20px rgba(0, 58, 112, 0.35),
     0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
 .button:active:not(:disabled) {
   transform: translateY(0);
   box-shadow:
-    0 1px 4px rgba(58, 90, 140, 0.15),
+    0 1px 4px rgba(0, 58, 112, 0.2),
     0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
@@ -590,16 +590,16 @@ body {
 
 .button-secondary {
   background: transparent;
-  color: #3a5a8c;
-  border: 2px solid #3a5a8c;
+  color: #003A70;
+  border: 2px solid #003A70;
   box-shadow: none;
   margin-top: 0;
 }
 
 .button-secondary:hover:not(:disabled) {
-  background: rgba(58, 90, 140, 0.08);
+  background: rgba(0, 58, 112, 0.08);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(58, 90, 140, 0.12);
+  box-shadow: 0 4px 12px rgba(0, 58, 112, 0.15);
 }
 
 .button-secondary:active:not(:disabled) {
@@ -614,7 +614,7 @@ body {
   border: 1px solid #e8c4c4;
   border-radius: 10px;
   color: #a84848;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 0.875rem;
   font-weight: 500;
   margin-top: 0.5rem;
@@ -626,7 +626,7 @@ body {
 }
 
 .summary-banner-inner {
-  background: linear-gradient(135deg, #2d2a26 0%, #3a3530 100%);
+  background: linear-gradient(135deg, #003A70 0%, #004A8F 100%);
   border-radius: 16px;
   padding: 1.75rem 2rem;
   color: #ffffff;
@@ -637,7 +637,7 @@ body {
 }
 
 .summary-label {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 0.72rem;
   font-weight: 500;
   letter-spacing: 0.08em;
@@ -647,7 +647,7 @@ body {
 }
 
 .summary-value {
-  font-family: 'Fraunces', Georgia, serif;
+  font-family: 'Source Serif 4', Georgia, serif;
   font-size: 2.5rem;
   font-weight: 600;
   line-height: 1.2;
@@ -659,7 +659,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 0.75rem;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 0.82rem;
   color: rgba(255, 255, 255, 0.55);
 }
@@ -714,7 +714,7 @@ body {
 }
 
 .fund-card-ticker {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 0.95rem;
   font-weight: 700;
   color: #2d2a26;
@@ -724,7 +724,7 @@ body {
 .fund-card-return-badge {
   background: #e6f0e6;
   color: #2e7a3a;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 0.75rem;
   font-weight: 600;
   padding: 0.2rem 0.65rem;
@@ -732,7 +732,7 @@ body {
 }
 
 .fund-card-value {
-  font-family: 'Fraunces', Georgia, serif;
+  font-family: 'Source Serif 4', Georgia, serif;
   font-size: 1.65rem;
   font-weight: 600;
   color: #2d2a26;
@@ -740,7 +740,7 @@ body {
 }
 
 .fund-card-gain {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 0.82rem;
   font-weight: 500;
   color: #2e7a3a;
@@ -764,7 +764,7 @@ body {
 }
 
 .chart-label {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 7px;
   fill: #9a9488;
   font-weight: 500;
@@ -783,7 +783,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Inter', sans-serif;
 }
 
 .fund-stat-label {
@@ -828,7 +828,7 @@ body {
     position: static;
     height: auto;
     border-right: none;
-    border-bottom: 1px solid #e8e3da;
+    border-bottom: 1px solid #c8d6e5;
   }
 
   .main-panel {
