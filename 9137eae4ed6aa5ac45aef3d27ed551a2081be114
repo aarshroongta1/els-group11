@@ -1,0 +1,25 @@
+frontend/src/components/AuthPage.js
+  3c95fa2b6eb29257 10,27-29,51-68,125-126
+frontend/src/App.css
+  3c95fa2b6eb29257 923-936
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.19",
+  "base_commit_sha": "9137eae4ed6aa5ac45aef3d27ed551a2081be114",
+  "prompts": {
+    "3c95fa2b6eb29257": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0afec80f-8a84-4e2e-b321-a8e3143923e3",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Aarsh Roongta <aarshroongta1@gmail.com>",
+      "messages": [],
+      "total_additions": 38,
+      "total_deletions": 0,
+      "accepted_lines": 38,
+      "overriden_lines": 0
+    }
+  }
+}
