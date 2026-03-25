@@ -849,3 +849,172 @@ body {
     font-size: 1.75rem;
   }
 }
+
+/* --- Save Button on ResultsCard --- */
+.button-save {
+  margin-top: 1rem;
+  width: 100%;
+  padding: 0.7rem 1rem;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: 2px solid #003A70;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: transparent;
+  color: #003A70;
+}
+
+.button-save:hover:not(:disabled) {
+  background: #003A70;
+  color: #ffffff;
+}
+
+.button-save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.button-save--saved {
+  background: #059669;
+  border-color: #059669;
+  color: #ffffff;
+}
+
+.button-save--signin {
+  border-color: #94A3B8;
+  color: #94A3B8;
+}
+
+/* --- Portfolio View --- */
+.portfolio-view {
+  width: 100%;
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.portfolio-heading {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: #003A70;
+  margin-bottom: 1.5rem;
+}
+
+.portfolio-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.summary-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  border: 1px solid #c8d6e5;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.summary-card-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #6B7C93;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 0.35rem;
+}
+
+.summary-card-value {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #003A70;
+}
+
+.portfolio-table-wrapper {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #c8d6e5;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.portfolio-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Inter', sans-serif;
+}
+
+.portfolio-table th {
+  text-align: left;
+  padding: 0.85rem 1.25rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #6B7C93;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: #F8FAFC;
+  border-bottom: 1px solid #c8d6e5;
+}
+
+.portfolio-table td {
+  padding: 0.85rem 1.25rem;
+  font-size: 0.88rem;
+  color: #1a2332;
+  border-bottom: 1px solid #E8EEF5;
+}
+
+.portfolio-table tr:last-child td {
+  border-bottom: none;
+}
+
+.portfolio-table tr:hover td {
+  background: #F8FAFC;
+}
+
+.portfolio-ticker {
+  font-weight: 700;
+  color: #003A70;
+}
+
+.portfolio-return-positive {
+  color: #059669;
+  font-weight: 600;
+}
+
+.delete-btn {
+  background: none;
+  border: none;
+  color: #94A3B8;
+  cursor: pointer;
+  padding: 0.3rem;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.delete-btn:hover {
+  color: #DC2626;
+  background: #FEE2E2;
+}
+
+.empty-portfolio {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: #6B7C93;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.95rem;
+}
+
+.portfolio-loading {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: #6B7C93;
+  font-family: 'Inter', sans-serif;
+}

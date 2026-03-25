@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 const formatCurrency = (value) =>
   new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -67,8 +69,25 @@ function GrowthChart({ yearlyData }) {
   );
 }
 
-function ResultsCard({ result }) {
+function ResultsCard({ result, onSave, user }) {
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
   const gain = result.futureValue - result.initialAmount;
+
+  async function handleSave() {
+    if (!user || saving || saved) return;
+    setSaving(true);
+    try {
+      await onSave(result);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      console.error('Failed to save investment:', err);
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <div className="fund-card">
@@ -114,6 +133,21 @@ function ResultsCard({ result }) {
           <span className="fund-stat-value">{result.years} yr{result.years !== 1 ? 's' : ''}</span>
         </div>
       </div>
+
+      {/* Save to Portfolio Button */}
+      {!user ? (
+        <button className="button-save button-save--signin" disabled>
+          Sign in to Save
+        </button>
+      ) : (
+        <button
+          className={`button-save${saved ? ' button-save--saved' : ''}`}
+          onClick={handleSave}
+          disabled={saving || saved}
+        >
+          {saving ? 'Saving...' : saved ? 'Saved!' : 'Save to Portfolio'}
+        </button>
+      )}
     </div>
   );
 }
