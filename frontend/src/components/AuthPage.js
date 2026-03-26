@@ -3,6 +3,8 @@ import { supabase } from "../supabaseClient";
 
 function AuthPage({ onAuthSuccess }) {
   const [isSignUp, setIsSignUp] = useState(false);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);

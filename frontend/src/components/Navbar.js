@@ -1,4 +1,20 @@
+import { useState, useRef, useEffect } from "react";
+
 function Navbar({ user, currentView, onViewChange, onSignOut, onSignIn }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  const avatarLetter = user?.email ? user.email[0].toUpperCase() : "?";
   return (
     <nav className="navbar">
       <div className="navbar-content">
@@ -21,12 +37,19 @@ function Navbar({ user, currentView, onViewChange, onSignOut, onSignIn }) {
 
         <div className="navbar-user">
           {user ? (
-            <>
-              <span className="navbar-email">{user.email}</span>
-              <button className="signout-btn" onClick={onSignOut}>
-                Sign Out
+            <div className="avatar-menu" ref={menuRef}>
+              <button className="avatar-btn" onClick={() => setMenuOpen(!menuOpen)}>
+                {avatarLetter}
               </button>
-            </>
+              {menuOpen && (
+                <div className="avatar-dropdown">
+                  <div className="avatar-dropdown-email">{user.email}</div>
+                  <button className="avatar-dropdown-item" onClick={() => { onSignOut(); setMenuOpen(false); }}>
+                    Sign Out
+                  </button>
+                </div>
+              )}
+            </div>
           ) : (
             <button className="signin-btn" onClick={onSignIn}>
               Sign In

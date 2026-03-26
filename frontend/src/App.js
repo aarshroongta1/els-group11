@@ -231,6 +231,16 @@ function App() {
           </div>
         ) : (
           <div className="welcome">
+            {user && (
+              <h1 className="welcome-greeting">
+                {(() => {
+                  const hour = new Date().getHours();
+                  const greeting = hour < 12 ? "Good Morning" : hour < 17 ? "Good Afternoon" : "Good Evening";
+                  const name = user.email.split("@")[0].charAt(0).toUpperCase() + user.email.split("@")[0].slice(1);
+                  return `${greeting}, ${name}!`;
+                })()}
+              </h1>
+            )}
             <h2 className="welcome-heading">
               Select a fund to see projected returns.
             </h2>
