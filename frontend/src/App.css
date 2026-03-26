@@ -1063,6 +1063,13 @@ body {
   margin: 0 auto;
 }
 
+.portfolio-main {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
 .portfolio-heading {
   font-family: 'Source Serif 4', Georgia, serif;
   font-size: 1.75rem;
@@ -1185,6 +1192,215 @@ body {
   padding: 4rem 2rem;
   color: #6B7C93;
   font-family: 'Inter', sans-serif;
+}
+
+/* --- Add Investment Card --- */
+.portfolio-add-card {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #c8d6e5;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.portfolio-add-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #003A70;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 1.25rem;
+}
+
+.portfolio-add-form {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.portfolio-add-field {
+  flex: 1;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  position: relative;
+}
+
+.portfolio-add-btn {
+  margin-top: 0;
+  width: auto;
+  padding: 0.9rem 1.5rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.portfolio-selected-fund {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #E8EEF5;
+  border-radius: 12px;
+  padding: 0.7rem 1rem;
+}
+
+.portfolio-selected-ticker {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #003A70;
+  background: #D6E4F0;
+  padding: 0.15rem 0.45rem;
+  border-radius: 5px;
+}
+
+.portfolio-selected-name {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.82rem;
+  color: #6B7C93;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.portfolio-selected-remove {
+  background: none;
+  border: none;
+  color: #6B7C93;
+  cursor: pointer;
+  padding: 0.2rem;
+  border-radius: 50%;
+  display: inline-flex;
+  transition: all 0.2s ease;
+}
+
+.portfolio-selected-remove:hover {
+  color: #DC2626;
+  background: rgba(220, 38, 38, 0.1);
+}
+
+/* --- Portfolio Charts --- */
+.portfolio-charts-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.portfolio-chart-card {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #c8d6e5;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.portfolio-chart-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #003A70;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+}
+
+.portfolio-chart-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.allocation-chart {
+  width: 200px;
+  height: 200px;
+}
+
+.growth-projection-chart {
+  width: 100%;
+  height: auto;
+}
+
+.chart-center-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  fill: #6B7C93;
+  font-weight: 500;
+}
+
+.chart-center-value {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 14px;
+  fill: #003A70;
+  font-weight: 600;
+}
+
+.chart-axis-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 9px;
+  fill: #6B7C93;
+  font-weight: 500;
+}
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  justify-content: center;
+}
+
+.chart-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.78rem;
+}
+
+.chart-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.chart-legend-ticker {
+  font-weight: 600;
+  color: #1a2332;
+}
+
+.chart-legend-pct {
+  color: #6B7C93;
+  font-weight: 400;
+}
+
+@media (max-width: 768px) {
+  .portfolio-charts-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .portfolio-add-form {
+    flex-direction: column;
+  }
+
+  .portfolio-add-field {
+    min-width: 100%;
+  }
+
+  .portfolio-add-btn {
+    width: 100%;
+  }
+
+  .portfolio-summary {
+    grid-template-columns: 1fr;
+  }
 }
 
 .portfolio-auth-prompt {

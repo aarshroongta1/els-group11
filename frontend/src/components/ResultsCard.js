@@ -69,7 +69,7 @@ function GrowthChart({ yearlyData }) {
   );
 }
 
-function ResultsCard({ result, onSave, user, onNavigate }) {
+function ResultsCard({ result, user, onSave, onNavigate }) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
