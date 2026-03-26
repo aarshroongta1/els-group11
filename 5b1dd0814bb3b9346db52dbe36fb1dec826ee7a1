@@ -1,0 +1,27 @@
+frontend/src/components/ResultsCard.js
+  3c95fa2b6eb29257 72
+frontend/src/components/PortfolioView.js
+  3c95fa2b6eb29257 1,4-10,19-183,189-199,209-215,217-227,258-264,266-307,311-316,318-319,321,324-339,345-350,353-409,411-433,435-474,476,478-574
+frontend/src/App.css
+  3c95fa2b6eb29257 1066-1072,1197-1405
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.19",
+  "base_commit_sha": "5b1dd0814bb3b9346db52dbe36fb1dec826ee7a1",
+  "prompts": {
+    "3c95fa2b6eb29257": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0afec80f-8a84-4e2e-b321-a8e3143923e3",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Aarsh Roongta <aarshroongta1@gmail.com>",
+      "messages": [],
+      "total_additions": 840,
+      "total_deletions": 222,
+      "accepted_lines": 778,
+      "overriden_lines": 0
+    }
+  }
+}
