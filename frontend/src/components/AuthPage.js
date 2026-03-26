@@ -19,7 +19,13 @@ function AuthPage({ onAuthSuccess }) {
     try {
       let result;
       if (isSignUp) {
-        result = await supabase.auth.signUp({ email, password });
+        result = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { first_name: firstName, last_name: lastName },
+          },
+        });
       } else {
         result = await supabase.auth.signInWithPassword({ email, password });
       }
@@ -70,6 +76,39 @@ function AuthPage({ onAuthSuccess }) {
           <>
           <form className="auth-form" onSubmit={handleSubmit}>
             {error && <div className="auth-error">{error}</div>}
+
+            {isSignUp && (
+              <div className="auth-name-row">
+                <div className="field">
+                  <label className="label" htmlFor="auth-first-name">
+                    First Name <span className="required">*</span>
+                  </label>
+                  <input
+                    id="auth-first-name"
+                    className="input"
+                    type="text"
+                    placeholder="John"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="field">
+                  <label className="label" htmlFor="auth-last-name">
+                    Last Name <span className="required">*</span>
+                  </label>
+                  <input
+                    id="auth-last-name"
+                    className="input"
+                    type="text"
+                    placeholder="Doe"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="field">
               <label className="label" htmlFor="auth-email">

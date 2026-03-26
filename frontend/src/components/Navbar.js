@@ -14,7 +14,9 @@ function Navbar({ user, currentView, onViewChange, onSignOut, onSignIn }) {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  const avatarLetter = user?.email ? user.email[0].toUpperCase() : "?";
+  const avatarLetter = user?.user_metadata?.first_name
+    ? user.user_metadata.first_name[0].toUpperCase()
+    : user?.email ? user.email[0].toUpperCase() : "?";
   return (
     <nav className="navbar">
       <div className="navbar-content">
