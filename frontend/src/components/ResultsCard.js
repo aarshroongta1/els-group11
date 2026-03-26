@@ -69,7 +69,7 @@ function GrowthChart({ yearlyData }) {
   );
 }
 
-function ResultsCard({ result, onSave, user }) {
+function ResultsCard({ result, onSave, user, onNavigate }) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -134,10 +134,10 @@ function ResultsCard({ result, onSave, user }) {
         </div>
       </div>
 
-      {/* Save to Portfolio Button */}
+      {/* Add Investment Button */}
       {!user ? (
-        <button className="button-save button-save--signin" disabled>
-          Sign in to Save
+        <button className="button-save" onClick={() => onNavigate && onNavigate("portfolio")}>
+          Add Investment
         </button>
       ) : (
         <button
@@ -145,7 +145,7 @@ function ResultsCard({ result, onSave, user }) {
           onClick={handleSave}
           disabled={saving || saved}
         >
-          {saving ? 'Saving...' : saved ? 'Saved!' : 'Save to Portfolio'}
+          {saving ? 'Saving...' : saved ? 'Added!' : 'Add Investment'}
         </button>
       )}
     </div>

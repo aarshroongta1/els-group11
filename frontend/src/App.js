@@ -51,11 +51,7 @@ function App() {
   };
 
   const handleViewChange = (view) => {
-    if (view === "portfolio" && !user) {
-      setCurrentView("auth");
-    } else {
-      setCurrentView(view);
-    }
+    setCurrentView(view);
   };
 
   const handleSignIn = () => {
@@ -230,7 +226,7 @@ function App() {
         {results.length > 0 ? (
           <div className="fund-columns">
             {results.map((result) => (
-              <ResultsCard key={result.fundTicker} result={result} user={user} onSave={handleSaveInvestment} />
+              <ResultsCard key={result.fundTicker} result={result} user={user} onSave={handleSaveInvestment} onNavigate={handleViewChange} />
             ))}
           </div>
         ) : (
@@ -327,10 +323,7 @@ function App() {
       return <AuthPage onAuthSuccess={handleAuthSuccess} />;
     }
     if (currentView === "portfolio") {
-      if (!user) {
-        return <AuthPage onAuthSuccess={handleAuthSuccess} />;
-      }
-      return <PortfolioView />;
+      return <PortfolioView user={user} onSignIn={() => setCurrentView("auth")} />;
     }
     return renderCalculator();
   };

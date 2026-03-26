@@ -9,14 +9,18 @@ const formatCurrency = (value) =>
     maximumFractionDigits: 0,
   }).format(value);
 
-function PortfolioView() {
+function PortfolioView({ user, onSignIn }) {
   const [investments, setInvestments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetchInvestments();
-  }, []);
+    if (user) {
+      fetchInvestments();
+    } else {
+      setLoading(false);
+    }
+  }, [user]);
 
   async function fetchInvestments() {
     setLoading(true);
@@ -53,6 +57,27 @@ function PortfolioView() {
   const totalInvested = investments.reduce((sum, inv) => sum + (inv.amount || 0), 0);
   const totalProjected = investments.reduce((sum, inv) => sum + (inv.future_value || 0), 0);
   const investmentCount = investments.length;
+
+  if (!user) {
+    return (
+      <div className="portfolio-view">
+        <h2 className="portfolio-heading">Investment Tracker</h2>
+        <div className="portfolio-auth-prompt">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#003A70" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0110 0v4" />
+          </svg>
+          <h3 className="portfolio-auth-title">Sign in to track your investments</h3>
+          <p className="portfolio-auth-text">
+            Create an account or sign in to save your calculated investments and track their projected performance over time.
+          </p>
+          <button className="button portfolio-auth-btn" onClick={onSignIn}>
+            Sign In / Create Account
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
