@@ -5,7 +5,7 @@ public class FutureValueResponse {
     private double futureValue;
     private double principal;
     private double rate;
-    private int years;
+    private double years;
     private String ticker;
     private double beta;
     private double expectedReturn;
@@ -14,7 +14,7 @@ public class FutureValueResponse {
     public FutureValueResponse() {
     }
 
-    public FutureValueResponse(double futureValue, double principal, double rate, int years, 
+    public FutureValueResponse(double futureValue, double principal, double rate, double years, 
                               String ticker, double beta, double expectedReturn, double riskFreeRate) {
         this.futureValue = futureValue;
         this.principal = principal;
@@ -51,11 +51,11 @@ public class FutureValueResponse {
         this.rate = rate;
     }
 
-    public int getYears() {
+    public double getYears() {
         return years;
     }
 
-    public void setYears(int years) {
+    public void setYears(double years) {
         this.years = years;
     }
 

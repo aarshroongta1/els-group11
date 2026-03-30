@@ -114,30 +114,50 @@ function App() {
             `${API_BASE_URL}/calculate?ticker=${ticker}&amount=${amount}&years=${getYears()}`,
           );
           const data = await response.json();
-          const returnPct =
-            ((data.futureValue - data.principal) / data.principal) * 100;
-          const annualReturn = data.expectedReturn;
-          const numYears = data.years;
-          const principal = data.principal;
+          
+          // Provide default values in case API returns undefined
+          const futureValue = data.futureValue || 0;
+          const principal = data.principal || parseFloat(amount) || 0;
+          const annualReturn = data.expectedReturn || 0;
+          const numYears = data.years || getYears();
+          
+          const returnPct = principal > 0
+            ? ((futureValue - principal) / principal) * 100
+            : 0;
 
           // Build year-by-year growth data for the chart
           const yearlyData = [];
-          for (let y = 0; y <= numYears; y++) {
-            yearlyData.push({
-              year: y,
-              value: principal * Math.exp(annualReturn * y),
-            });
+          
+          if (numYears < 1) {
+            // For less than 1 year, create monthly data points
+            const months = Math.ceil(numYears * 12);
+            for (let m = 0; m <= months; m++) {
+              const yearFraction = (m / 12);
+              yearlyData.push({
+                year: yearFraction,
+                value: principal * Math.exp(annualReturn * yearFraction),
+              });
+            }
+          } else {
+            // For 1+ years, create yearly data points
+            for (let y = 0; y <= Math.ceil(numYears); y++) {
+              const actualYear = Math.min(y, numYears);
+              yearlyData.push({
+                year: actualYear,
+                value: principal * Math.exp(annualReturn * actualYear),
+              });
+            }
           }
 
           return {
-            futureValue: data.futureValue,
-            fundTicker: data.ticker,
+            futureValue: futureValue,
+            fundTicker: data.ticker || ticker,
             initialAmount: principal,
             years: numYears,
-            returnPct,
-            expectedReturn: data.expectedReturn,
-            beta: data.beta,
-            riskFreeRate: data.riskFreeRate,
+            returnPct: returnPct,
+            expectedReturn: data.expectedReturn || 0,
+            beta: data.beta || 1.0,
+            riskFreeRate: data.riskFreeRate || 0,
             yearlyData,
           };
         }),
