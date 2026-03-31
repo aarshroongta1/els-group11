@@ -21,7 +21,7 @@ public class MutualFundService {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private List<Map<String, String>> newsCache = null;
     private long newsCacheTimestamp = 0;
-    private static final long NEWS_CACHE_TTL = 300_000; // 5 minutes
+    private static final long NEWS_CACHE_TTL = 3_600_000; // 1 hour
 
     private static final String ALPHA_VANTAGE_API_KEY = "7MLN1V774I3VMJ07";
 
