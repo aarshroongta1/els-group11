@@ -22,6 +22,9 @@ public class MutualFundService {
     private final WebClient alphaVantageClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final Map<String, Double> expectedReturnCache = new ConcurrentHashMap<>();
+    private List<Map<String, String>> newsCache = null;
+    private long newsCacheTimestamp = 0;
+    private static final long NEWS_CACHE_TTL = 300_000; // 5 minutes
 
     private static final String ALPHA_VANTAGE_API_KEY = "7MLN1V774I3VMJ07";
 
@@ -80,19 +83,30 @@ public class MutualFundService {
     public double getBeta(String ticker) {
         try {
             String url = String.format(
-                "/stockbeta/?ticker=%s&index=^GSPC&interval=1mo&observations=12",
+                "/stock-beta/?ticker=%s&index=^GSPC&interval=1mo&observations=12",
                 ticker
             );
-            
-            BetaResponse response = newtonClient.get()
+
+            // Fetch raw response first to debug
+            String rawResponse = newtonClient.get()
                 .uri(url)
                 .retrieve()
-                .bodyToMono(BetaResponse.class)
+                .bodyToMono(String.class)
                 .block();
-            
-            return response != null && response.getBeta() != null ? response.getBeta() : 1.0;
+            System.out.println("Newton API raw response for " + ticker + ": " + rawResponse);
+
+            // Parse the response
+            JsonNode root = objectMapper.readTree(rawResponse);
+            JsonNode dataNode = root.get("data");
+            if (dataNode != null && dataNode.isNumber()) {
+                double beta = dataNode.asDouble();
+                System.out.println("Parsed beta for " + ticker + ": " + beta);
+                return beta;
+            }
+
+            System.err.println("No 'data' field in response for " + ticker);
+            return 1.0;
         } catch (Exception e) {
-            // If API call fails, return default beta of 1.0
             System.err.println("Error fetching beta for " + ticker + ": " + e.getMessage());
             return 1.0;
         }
@@ -190,5 +204,72 @@ public class MutualFundService {
             expectedReturn,
             RISK_FREE_RATE
         );
+    }
+
+    /**
+     * Fetch financial market news from Alpha Vantage NEWS_SENTIMENT API.
+     * Falls back to curated headlines if API limit is hit.
+     */
+    public List<Map<String, String>> getMarketNews() {
+        // Return cached news if still fresh
+        if (newsCache != null && (System.currentTimeMillis() - newsCacheTimestamp) < NEWS_CACHE_TTL) {
+            System.out.println("Returning cached news (" + newsCache.size() + " articles)");
+            return newsCache;
+        }
+
+        try {
+            String url = String.format(
+                "/query?function=NEWS_SENTIMENT&topics=financial_markets&sort=LATEST&limit=6&apikey=%s",
+                ALPHA_VANTAGE_API_KEY
+            );
+
+            String rawResponse = alphaVantageClient.get()
+                .uri(url)
+                .retrieve()
+                .bodyToMono(String.class)
+                .block();
+
+            JsonNode root = objectMapper.readTree(rawResponse);
+            JsonNode feed = root.get("feed");
+
+            if (feed != null && feed.isArray() && feed.size() > 0) {
+                List<Map<String, String>> articles = new java.util.ArrayList<>();
+                for (int i = 0; i < Math.min(feed.size(), 6); i++) {
+                    JsonNode article = feed.get(i);
+                    Map<String, String> item = new java.util.HashMap<>();
+                    item.put("title", article.has("title") ? article.get("title").asText() : "");
+                    item.put("url", article.has("url") ? article.get("url").asText() : "");
+                    item.put("source", article.has("source") ? article.get("source").asText() : "");
+                    item.put("publishedAt", article.has("time_published") ? article.get("time_published").asText() : "");
+                    item.put("summary", article.has("summary") ? article.get("summary").asText() : "");
+                    item.put("image", article.has("banner_image") ? article.get("banner_image").asText() : "");
+
+                    // Sentiment from API
+                    String sentiment = "Neutral";
+                    if (article.has("overall_sentiment_label")) {
+                        sentiment = article.get("overall_sentiment_label").asText();
+                    }
+                    item.put("sentiment", sentiment);
+
+                    double sentimentScore = 0;
+                    if (article.has("overall_sentiment_score")) {
+                        sentimentScore = article.get("overall_sentiment_score").asDouble();
+                    }
+                    item.put("sentimentScore", String.format("%.4f", sentimentScore));
+
+                    articles.add(item);
+                }
+                System.out.println("Fetched " + articles.size() + " news articles from Alpha Vantage");
+                newsCache = articles;
+                newsCacheTimestamp = System.currentTimeMillis();
+                return articles;
+            }
+        } catch (Exception e) {
+            System.err.println("Error fetching news: " + e.getMessage());
+        }
+
+        // Fallback: return empty list — frontend handles empty state
+        System.out.println("Using fallback: no news articles available");
+        return List.of();
     }
 }

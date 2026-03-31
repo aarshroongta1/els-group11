@@ -3,9 +3,11 @@ import FundSelector from "./components/FundSelector";
 import InvestmentInput from "./components/InvestmentInput";
 import TimeHorizonInput from "./components/TimeHorizonInput";
 import ResultsCard from "./components/ResultsCard";
+import StressTest from "./components/StressTest";
+import MarketInsights from "./components/MarketInsights";
 import "./App.css";
 
-const API_BASE_URL = "http://localhost:8080/api";
+const API_BASE_URL = "/api";
 
 function App() {
   const [funds, setFunds] = useState([]);
@@ -176,94 +178,20 @@ function App() {
 
         <main className="main-panel">
           {results.length > 0 ? (
-            <div className="fund-columns">
-              {results.map((result) => (
-                <ResultsCard key={result.fundTicker} result={result} />
-              ))}
+            <div className="results-section">
+              <div className="fund-columns">
+                {results.map((result) => (
+                  <ResultsCard key={result.fundTicker} result={result} />
+                ))}
+              </div>
+              <StressTest results={results} />
             </div>
           ) : (
             <div className="welcome">
               <h2 className="welcome-heading">
                 Select a fund to see projected returns.
               </h2>
-
-              <div className="welcome-header">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#9a9488"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-                </svg>
-                <span className="welcome-label">Market Insights</span>
-              </div>
-              <div className="insights-row">
-                <a
-                  className="insight-card"
-                  href="https://www.reuters.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <span className="insight-sentiment insight-sentiment--bullish">
-                    Bullish
-                  </span>
-                  <p className="insight-headline">
-                    S&P 500 Index Funds See Record Inflows as Investors Bet on
-                    Continued Growth
-                  </p>
-                  <span className="insight-source">Reuters</span>
-                </a>
-                <a
-                  className="insight-card"
-                  href="https://www.cnbc.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <span className="insight-sentiment insight-sentiment--neutral">
-                    Neutral
-                  </span>
-                  <p className="insight-headline">
-                    Fed Holds Rates Steady, Markets Weigh Impact on Bond and
-                    Equity Funds
-                  </p>
-                  <span className="insight-source">CNBC</span>
-                </a>
-                <a
-                  className="insight-card"
-                  href="https://www.bloomberg.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <span className="insight-sentiment insight-sentiment--bullish">
-                    Bullish
-                  </span>
-                  <p className="insight-headline">
-                    Vanguard and Fidelity Lead Mutual Fund Industry With
-                    Low-Cost Offerings
-                  </p>
-                  <span className="insight-source">Bloomberg</span>
-                </a>
-                <a
-                  className="insight-card"
-                  href="https://www.wsj.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <span className="insight-sentiment insight-sentiment--bearish">
-                    Bearish
-                  </span>
-                  <p className="insight-headline">
-                    International Fund Managers Warn of Emerging Market
-                    Volatility Ahead
-                  </p>
-                  <span className="insight-source">WSJ</span>
-                </a>
-              </div>
+              <MarketInsights />
             </div>
           )}
         </main>
