@@ -1,0 +1,29 @@
+backend/src/main/java/com/group11/mutualfund/model/MutualFund.java
+  97dfdf48784cea25 8,10,14,28-30
+backend/src/main/java/com/group11/mutualfund/service/MutualFundService.java
+  97dfdf48784cea25 24,27-103
+frontend/src/App.css
+  97dfdf48784cea25 433-468
+frontend/src/components/FundSelector.js
+  97dfdf48784cea25 8,17,46-57
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.22",
+  "base_commit_sha": "1d7649b7ebda53ed364b3d5763f1a0875d658b93",
+  "prompts": {
+    "97dfdf48784cea25": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2bc2c8e8-23ad-4949-aed3-35c37cd316eb",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Aarsh Roongta <aarshroongta1@gmail.com>",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 134,
+      "overriden_lines": 0
+    }
+  }
+}
