@@ -6,21 +6,28 @@ import com.group11.mutualfund.model.MutualFund;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class MutualFundService {
 
     private final WebClient newtonClient;
+    private final WebClient alphaVantageClient;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    private List<Map<String, String>> newsCache = null;
+    private long newsCacheTimestamp = 0;
+    private static final long NEWS_CACHE_TTL = 300_000; // 5 minutes
+
+    private static final String ALPHA_VANTAGE_API_KEY = "7MLN1V774I3VMJ07";
 
     // Hardcoded risk-free rate (US Treasury 10-year rate)
     private static final double RISK_FREE_RATE = 0.0435; // 4.35% as of Feb 2026
     
-    // Hardcoded list of mutual funds, ETFs, and stocks with 2025 returns
-    // Returns are actual 2025 data from Alpha Vantage API (fetched March 2026)
-    // Money market funds show 2025 7-day SEC yields
-    // Beta values are fetched live from Newton Analytics API
     // 2025 returns sourced from Yahoo Finance: close 12/31/2024 → close 12/31/2025
     private static final List<MutualFund> MUTUAL_FUNDS = Arrays.asList(
         // MUTUAL FUNDS
@@ -79,34 +86,15 @@ public class MutualFundService {
         new MutualFund("XLI", "Industrial Select Sector SPDR Fund", 0.1773, "ETF"),
         new MutualFund("SCHD", "Schwab U.S. Dividend Equity ETF", 0.0040, "ETF"),
         new MutualFund("ARKK", "ARK Innovation ETF", 0.3549, "ETF")
-
-        // POPULAR STOCKS - commented out to focus on mutual funds and ETFs
-        // new MutualFund("AAPL", "Apple Inc.", 0.0856),
-        // new MutualFund("MSFT", "Microsoft Corporation", 0.1474),
-        // new MutualFund("GOOGL", "Alphabet Inc. (Google)", 0.6535),
-        // new MutualFund("AMZN", "Amazon.com Inc.", 0.0521),
-        // new MutualFund("NVDA", "NVIDIA Corporation", 0.3888),
-        // new MutualFund("TSLA", "Tesla Inc.", 0.1136),
-        // new MutualFund("META", "Meta Platforms Inc. (Facebook)", 0.1274),
-        // new MutualFund("BRK.B", "Berkshire Hathaway Inc. Class B", 0.1340), // Newton API fails for ticker with dot
-        // new MutualFund("JPM", "JPMorgan Chase & Co.", 0.3442),
-        // new MutualFund("V", "Visa Inc.", 0.1097),
-        // new MutualFund("JNJ", "Johnson & Johnson", 0.4310),
-        // new MutualFund("WMT", "Walmart Inc.", 0.2331),
-        // new MutualFund("PG", "Procter & Gamble Co.", -0.1452),
-        // new MutualFund("MA", "Mastercard Incorporated", 0.0841),
-        // new MutualFund("DIS", "The Walt Disney Company", 0.0217),
-        // new MutualFund("NFLX", "Netflix Inc.", 0.0519),
-        // new MutualFund("ADBE", "Adobe Inc.", -0.2129),
-        // new MutualFund("CRM", "Salesforce Inc.", -0.2076),
-        // new MutualFund("INTC", "Intel Corporation", 0.8404),
-        // new MutualFund("AMD", "Advanced Micro Devices Inc.", 0.7730)
     );
     
 
     public MutualFundService() {
         this.newtonClient = WebClient.builder()
             .baseUrl("https://api.newtonanalytics.com")
+            .build();
+        this.alphaVantageClient = WebClient.builder()
+            .baseUrl("https://www.alphavantage.co")
             .build();
     }
 
@@ -126,16 +114,15 @@ public class MutualFundService {
                 "/stockbeta/?ticker=%s&index=^GSPC&interval=1mo&observations=12",
                 ticker
             );
-            
+
             BetaResponse response = newtonClient.get()
                 .uri(url)
                 .retrieve()
                 .bodyToMono(BetaResponse.class)
                 .block();
-            
+
             return response != null && response.getBeta() != null ? response.getBeta() : 1.0;
         } catch (Exception e) {
-            // If API call fails, return default beta of 1.0
             System.err.println("Error fetching beta for " + ticker + ": " + e.getMessage());
             return 1.0;
         }
@@ -162,13 +149,13 @@ public class MutualFundService {
     public FutureValueResponse calculateFutureValue(String ticker, double principal, double years) {
         // Get beta from Newton Analytics API
         double beta = getBeta(ticker);
-        
+
         // Get expected return from hardcoded 2025 data
         double expectedReturn = getExpectedReturn(ticker);
-        
+
         // Calculate rate using CAPM: r = rf + β(rm - rf)
         double rate = RISK_FREE_RATE + beta * (expectedReturn - RISK_FREE_RATE);
-        
+
         // Calculate future value using continuous compounding
         double futureValue = principal * Math.exp(rate * years);
         
@@ -182,5 +169,70 @@ public class MutualFundService {
             expectedReturn,
             RISK_FREE_RATE
         );
+    }
+
+    /**
+     * Fetch financial market news from Alpha Vantage NEWS_SENTIMENT API.
+     * Falls back to empty list if API limit is hit.
+     */
+    public List<Map<String, String>> getMarketNews() {
+        // Return cached news if still fresh
+        if (newsCache != null && (System.currentTimeMillis() - newsCacheTimestamp) < NEWS_CACHE_TTL) {
+            System.out.println("Returning cached news (" + newsCache.size() + " articles)");
+            return newsCache;
+        }
+
+        try {
+            String url = String.format(
+                "/query?function=NEWS_SENTIMENT&topics=financial_markets&sort=LATEST&limit=6&apikey=%s",
+                ALPHA_VANTAGE_API_KEY
+            );
+
+            String rawResponse = alphaVantageClient.get()
+                .uri(url)
+                .retrieve()
+                .bodyToMono(String.class)
+                .block();
+
+            JsonNode root = objectMapper.readTree(rawResponse);
+            JsonNode feed = root.get("feed");
+
+            if (feed != null && feed.isArray() && feed.size() > 0) {
+                List<Map<String, String>> articles = new java.util.ArrayList<>();
+                for (int i = 0; i < Math.min(feed.size(), 6); i++) {
+                    JsonNode article = feed.get(i);
+                    Map<String, String> item = new java.util.HashMap<>();
+                    item.put("title", article.has("title") ? article.get("title").asText() : "");
+                    item.put("url", article.has("url") ? article.get("url").asText() : "");
+                    item.put("source", article.has("source") ? article.get("source").asText() : "");
+                    item.put("publishedAt", article.has("time_published") ? article.get("time_published").asText() : "");
+                    item.put("summary", article.has("summary") ? article.get("summary").asText() : "");
+                    item.put("image", article.has("banner_image") ? article.get("banner_image").asText() : "");
+
+                    String sentiment = "Neutral";
+                    if (article.has("overall_sentiment_label")) {
+                        sentiment = article.get("overall_sentiment_label").asText();
+                    }
+                    item.put("sentiment", sentiment);
+
+                    double sentimentScore = 0;
+                    if (article.has("overall_sentiment_score")) {
+                        sentimentScore = article.get("overall_sentiment_score").asDouble();
+                    }
+                    item.put("sentimentScore", String.format("%.4f", sentimentScore));
+
+                    articles.add(item);
+                }
+                System.out.println("Fetched " + articles.size() + " news articles from Alpha Vantage");
+                newsCache = articles;
+                newsCacheTimestamp = System.currentTimeMillis();
+                return articles;
+            }
+        } catch (Exception e) {
+            System.err.println("Error fetching news: " + e.getMessage());
+        }
+
+        System.out.println("Using fallback: no news articles available");
+        return List.of();
     }
 }

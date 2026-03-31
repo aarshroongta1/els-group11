@@ -14,7 +14,7 @@ public class FutureValueResponse {
     public FutureValueResponse() {
     }
 
-    public FutureValueResponse(double futureValue, double principal, double rate, double years, 
+    public FutureValueResponse(double futureValue, double principal, double rate, double years,
                               String ticker, double beta, double expectedReturn, double riskFreeRate) {
         this.futureValue = futureValue;
         this.principal = principal;

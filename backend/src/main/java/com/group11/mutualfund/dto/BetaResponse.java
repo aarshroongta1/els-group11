@@ -6,7 +6,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class BetaResponse {
     
-    @JsonProperty("beta")
+    @JsonProperty("data")
     private Double beta;
     
     @JsonProperty("ticker")

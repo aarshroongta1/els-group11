@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 public class HelloController {
@@ -107,6 +108,16 @@ public class HelloController {
         }
         return new RecommendationResponse(recommendedFunds, explanation);
 
+    }
+
+
+    /**
+     * GET /api/news
+     * Fetch latest financial market news with sentiment
+     */
+    @GetMapping("/api/news")
+    public List<Map<String, String>> getNews() {
+        return mutualFundService.getMarketNews();
     }
 
 
