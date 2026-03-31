@@ -5,6 +5,7 @@ const MAX_FUNDS = 3;
 function FundSelector({ funds, selectedFunds, onAddFund, onRemoveFund }) {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
+  const [fundType, setFundType] = useState('All');
   const wrapperRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -13,6 +14,7 @@ function FundSelector({ funds, selectedFunds, onAddFund, onRemoveFund }) {
   const filtered = funds.filter(
     (fund) =>
       !selectedFunds.includes(fund.ticker) &&
+      (fundType === 'All' || fund.type === fundType) &&
       (fund.ticker.toLowerCase().includes(query.toLowerCase()) ||
         fund.name.toLowerCase().includes(query.toLowerCase()))
   );
@@ -40,6 +42,19 @@ function FundSelector({ funds, selectedFunds, onAddFund, onRemoveFund }) {
       <label className="label" htmlFor="fund-search">
         Select Funds ({selectedFunds.length}/{MAX_FUNDS}) <span className="required">*</span>
       </label>
+
+      <div className="fund-type-toggle">
+        {['All', 'Mutual Fund', 'ETF'].map((type) => (
+          <button
+            key={type}
+            type="button"
+            className={`fund-type-btn ${fundType === type ? 'fund-type-btn--active' : ''}`}
+            onClick={() => setFundType(type)}
+          >
+            {type}
+          </button>
+        ))}
+      </div>
 
       <div className="search-select" ref={wrapperRef}>
         <div className="search-input-wrapper">

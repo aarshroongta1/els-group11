@@ -430,6 +430,42 @@ body {
   color: #1a2332;
 }
 
+/* --- Fund Type Toggle --- */
+.fund-type-toggle {
+  display: flex;
+  background: #E8EEF5;
+  border-radius: 10px;
+  padding: 3px;
+  gap: 2px;
+  margin-bottom: 0.75rem;
+}
+
+.fund-type-btn {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: #6B7C93;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 0.6rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex: 1;
+  text-align: center;
+}
+
+.fund-type-btn--active {
+  background: #003A70;
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 1px 4px rgba(0, 58, 112, 0.3);
+}
+
+.fund-type-btn:hover:not(.fund-type-btn--active) {
+  color: #1a2332;
+}
+
 /* --- Select --- */
 .select-wrapper {
   position: relative;
