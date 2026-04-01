@@ -1253,6 +1253,11 @@ body {
   font-weight: 600;
 }
 
+.portfolio-return-negative {
+  color: #a84848;
+  font-weight: 600;
+}
+
 .delete-btn {
   background: none;
   border: none;
@@ -1452,6 +1457,13 @@ body {
   gap: 0.35rem;
   font-family: 'Inter', sans-serif;
   font-size: 0.78rem;
+}
+
+.chart-legend-dash {
+  width: 16px;
+  height: 0;
+  border-top: 2px dashed #94A3B8;
+  flex-shrink: 0;
 }
 
 .chart-legend-dot {

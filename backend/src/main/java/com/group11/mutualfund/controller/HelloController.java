@@ -2,6 +2,7 @@ package com.group11.mutualfund.controller;
 import com.group11.mutualfund.model.UserInput;
 import com.group11.mutualfund.model.RecommendationResponse;
 import com.group11.mutualfund.dto.FutureValueResponse;
+import com.group11.mutualfund.dto.HistoricalPerformanceResponse;
 import com.group11.mutualfund.model.MutualFund;
 import com.group11.mutualfund.service.AIService;
 import com.group11.mutualfund.service.MutualFundService;
@@ -118,6 +119,15 @@ public class HelloController {
     @GetMapping("/api/news")
     public List<Map<String, String>> getNews() {
         return mutualFundService.getMarketNews();
+    }
+
+    /**
+     * GET /api/historical/{ticker}
+     * Get historical performance (1Y, 3Y, 5Y trailing returns) from Yahoo Finance
+     */
+    @GetMapping("/api/historical/{ticker}")
+    public HistoricalPerformanceResponse getHistoricalPerformance(@PathVariable String ticker) {
+        return mutualFundService.getHistoricalPerformance(ticker);
     }
 
 
