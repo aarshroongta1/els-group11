@@ -1170,36 +1170,57 @@ body {
   margin-bottom: 1.5rem;
 }
 
-.portfolio-summary {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-}
-
-.summary-card {
+.portfolio-summary-bar {
+  display: flex;
+  align-items: center;
   background: #ffffff;
   border-radius: 10px;
-  padding: 0.85rem 1rem;
   border: 1px solid #c8d6e5;
+  padding: 0.7rem 0;
+  margin-bottom: 1rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
-.summary-card-label {
+.summary-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0 0.75rem;
+  border-right: 1px solid #E8EEF5;
+}
+
+.summary-stat:last-child {
+  border-right: none;
+}
+
+.summary-stat-label {
   font-family: 'Inter', sans-serif;
-  font-size: 0.72rem;
+  font-size: 0.65rem;
   font-weight: 600;
   color: #6B7C93;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  margin-bottom: 0.35rem;
 }
 
-.summary-card-value {
+.summary-stat-value {
   font-family: 'Source Serif 4', Georgia, serif;
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   font-weight: 600;
   color: #003A70;
+}
+
+.summary-stat-positive {
+  color: #059669;
+}
+
+.summary-stat-error,
+.portfolio-data-error {
+  color: #DC2626;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
 }
 
 .portfolio-table-wrapper {
@@ -1243,6 +1264,23 @@ body {
 
 .portfolio-table tr:hover td {
   background: #F8FAFC;
+}
+
+.portfolio-table tr.portfolio-row-selected td {
+  background: #EFF6FF;
+  border-bottom-color: #DBEAFE;
+}
+
+.portfolio-table tr.portfolio-row-selected td:first-child {
+  box-shadow: inset 3px 0 0 #2E86DE;
+}
+
+.portfolio-table tr.portfolio-row-selected:hover td {
+  background: #DBEAFE;
+}
+
+.portfolio-table tr.portfolio-row-selected .portfolio-ticker {
+  color: #2E86DE;
 }
 
 .portfolio-ticker {
@@ -1486,18 +1524,22 @@ body {
 }
 
 @media (max-width: 1200px) {
-  .portfolio-summary {
-    grid-template-columns: repeat(3, 1fr);
-  }
-
   .portfolio-charts-row {
     grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 768px) {
-  .portfolio-summary {
-    grid-template-columns: repeat(2, 1fr);
+  .portfolio-summary-bar {
+    flex-wrap: wrap;
+    gap: 0.5rem 0;
+    padding: 0.6rem 0;
+  }
+
+  .summary-stat {
+    flex: 0 0 33.33%;
+    border-right: none;
+    padding: 0.3rem 0.5rem;
   }
 
   .portfolio-charts-row {

@@ -111,23 +111,21 @@ public class MutualFundService {
      * Get beta value for a mutual fund from Newton Analytics API
      */
     public double getBeta(String ticker) {
-        try {
-            String url = String.format(
-                "/stockbeta/?ticker=%s&index=^GSPC&interval=1mo&observations=12",
-                ticker
-            );
+        String url = String.format(
+            "/stock-beta/?ticker=%s&index=^GSPC&interval=1mo&observations=12",
+            ticker
+        );
 
-            BetaResponse response = newtonClient.get()
-                .uri(url)
-                .retrieve()
-                .bodyToMono(BetaResponse.class)
-                .block();
+        BetaResponse response = newtonClient.get()
+            .uri(url)
+            .retrieve()
+            .bodyToMono(BetaResponse.class)
+            .block();
 
-            return response != null && response.getBeta() != null ? response.getBeta() : 1.0;
-        } catch (Exception e) {
-            System.err.println("Error fetching beta for " + ticker + ": " + e.getMessage());
-            return 1.0;
+        if (response == null || response.getBeta() == null) {
+            throw new RuntimeException("Newton API returned no beta data for " + ticker);
         }
+        return response.getBeta();
     }
 
     /**

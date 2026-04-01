@@ -116,13 +116,16 @@ function App() {
             `${API_BASE_URL}/calculate?ticker=${ticker}&amount=${amount}&years=${getYears()}`,
           );
           const data = await response.json();
-          
-          // Provide default values in case API returns undefined
-          const futureValue = data.futureValue || 0;
-          const principal = data.principal || parseFloat(amount) || 0;
-          const annualReturn = data.expectedReturn || 0;
-          const numYears = data.years || getYears();
-          
+
+          if (data.futureValue == null || data.principal == null || data.expectedReturn == null || data.beta == null) {
+            throw new Error(`Missing data from API for ${ticker}`);
+          }
+
+          const futureValue = data.futureValue;
+          const principal = data.principal;
+          const annualReturn = data.expectedReturn;
+          const numYears = data.years;
+
           const returnPct = principal > 0
             ? ((futureValue - principal) / principal) * 100
             : 0;
@@ -152,14 +155,14 @@ function App() {
           }
 
           return {
-            futureValue: futureValue,
-            fundTicker: data.ticker || ticker,
+            futureValue,
+            fundTicker: data.ticker,
             initialAmount: principal,
             years: numYears,
-            returnPct: returnPct,
-            expectedReturn: data.expectedReturn || 0,
-            beta: data.beta || 1.0,
-            riskFreeRate: data.riskFreeRate || 0,
+            returnPct,
+            expectedReturn: data.expectedReturn,
+            beta: data.beta,
+            riskFreeRate: data.riskFreeRate,
             yearlyData,
           };
         }),

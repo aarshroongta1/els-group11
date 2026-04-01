@@ -81,7 +81,7 @@ function AllocationChart({ investments }) {
   );
 }
 
-function GrowthProjectionChart({ investments, funds }) {
+function GrowthProjectionChart({ investments, funds, selectedFund }) {
   const width = 500;
   const height = 220;
   const padL = 55;
@@ -95,42 +95,85 @@ function GrowthProjectionChart({ investments, funds }) {
     return `${m} '${y}`;
   };
 
-  // Build growth curves using real dates from created_at
-  const curves = investments.map((inv, idx) => {
-    const principal = Number(inv.amount);
-    const rate = Number(inv.expected_return);
-    const years = Number(inv.years);
-    const startDate = new Date(inv.created_at);
-    const points = [];
-    for (let y = 0; y <= years; y++) {
-      const date = new Date(startDate);
-      date.setFullYear(date.getFullYear() + y);
-      points.push({ date, timestamp: date.getTime(), value: principal * Math.exp(rate * y) });
-    }
-    return { ticker: inv.ticker, points, color: CHART_COLORS[idx % CHART_COLORS.length] };
-  });
+  if (investments.length === 0) return null;
 
-  // Build S&P 500 benchmark curve
+  const MS_PER_YEAR = 365.25 * 24 * 60 * 60 * 1000;
+
+  // Time range across all investments
+  const earliestStart = new Date(Math.min(...investments.map((inv) => new Date(inv.created_at).getTime())));
+  const latestEnd = new Date(Math.max(...investments.map((inv) => {
+    const s = new Date(inv.created_at);
+    s.setFullYear(s.getFullYear() + Number(inv.years));
+    return s.getTime();
+  })));
+  const longestYears = Math.max(...investments.map((inv) => Number(inv.years)), 1);
+  const totalSpanYears = Math.ceil((latestEnd.getTime() - earliestStart.getTime()) / MS_PER_YEAR);
+  const steps = Math.max(totalSpanYears, 1);
+
+  // Build aggregate portfolio curve
+  const aggregatePoints = [];
+  for (let y = 0; y <= steps; y++) {
+    const date = new Date(earliestStart);
+    date.setFullYear(date.getFullYear() + y);
+    const ts = date.getTime();
+
+    let totalValue = 0;
+    investments.forEach((inv) => {
+      const invStart = new Date(inv.created_at).getTime();
+      if (ts < invStart) return; // investment hasn't started yet
+      const yearsElapsed = (ts - invStart) / MS_PER_YEAR;
+      const capped = Math.min(yearsElapsed, Number(inv.years));
+      totalValue += Number(inv.amount) * Math.exp(Number(inv.expected_return) * capped);
+    });
+
+    aggregatePoints.push({ date, timestamp: ts, value: totalValue });
+  }
+
+  // Build individual fund curve for the selected fund
+  let fundCurve = null;
+  if (selectedFund) {
+    const matching = investments.filter((inv) => inv.ticker === selectedFund);
+    if (matching.length > 0) {
+      const invStart = new Date(Math.min(...matching.map((inv) => new Date(inv.created_at).getTime())));
+      const invEnd = new Date(Math.max(...matching.map((inv) => {
+        const s = new Date(inv.created_at);
+        s.setFullYear(s.getFullYear() + Number(inv.years));
+        return s.getTime();
+      })));
+      const spanYears = Math.ceil((invEnd.getTime() - invStart.getTime()) / MS_PER_YEAR);
+
+      const points = [];
+      for (let y = 0; y <= Math.max(spanYears, 1); y++) {
+        const date = new Date(invStart);
+        date.setFullYear(date.getFullYear() + y);
+        const ts = date.getTime();
+        let val = 0;
+        matching.forEach((inv) => {
+          const iStart = new Date(inv.created_at).getTime();
+          if (ts < iStart) return;
+          const elapsed = (ts - iStart) / MS_PER_YEAR;
+          const capped = Math.min(elapsed, Number(inv.years));
+          val += Number(inv.amount) * Math.exp(Number(inv.expected_return) * capped);
+        });
+        points.push({ date, timestamp: ts, value: val });
+      }
+      fundCurve = { ticker: selectedFund, points, color: '#2E86DE' };
+    }
+  }
+
+  // S&P 500 benchmark curve
   const spyFund = funds.find((f) => f.ticker === 'SPY');
   const spyReturn = spyFund ? spyFund.expectedReturn : 0.1635;
-  const totalInvestedForBenchmark = investments.reduce((s, inv) => s + Number(inv.amount), 0);
-  const earliestStart = investments.length > 0
-    ? new Date(Math.min(...investments.map((inv) => new Date(inv.created_at).getTime())))
-    : new Date();
-  const longestYears = investments.length > 0
-    ? Math.max(...investments.map((inv) => Number(inv.years)))
-    : 1;
+  const totalInvested = investments.reduce((s, inv) => s + Number(inv.amount), 0);
   const benchmarkPoints = [];
   for (let y = 0; y <= longestYears; y++) {
     const date = new Date(earliestStart);
     date.setFullYear(date.getFullYear() + y);
-    benchmarkPoints.push({ date, timestamp: date.getTime(), value: totalInvestedForBenchmark * Math.exp(spyReturn * y) });
+    benchmarkPoints.push({ date, timestamp: date.getTime(), value: totalInvested * Math.exp(spyReturn * y) });
   }
 
-  if (curves.length === 0) return null;
-
-  // Find global min/max timestamps and values (including benchmark)
-  const allPoints = [...curves.flatMap((c) => c.points), ...benchmarkPoints];
+  // Find global min/max (aggregate + benchmark + selected fund curve)
+  const allPoints = [...aggregatePoints, ...benchmarkPoints, ...(fundCurve ? fundCurve.points : [])];
   const minTime = Math.min(...allPoints.map((p) => p.timestamp));
   const maxTime = Math.max(...allPoints.map((p) => p.timestamp));
   const timeRange = maxTime - minTime || 1;
@@ -140,16 +183,16 @@ function GrowthProjectionChart({ investments, funds }) {
   const toX = (ts) => padL + ((ts - minTime) / timeRange) * (width - padL - padR);
   const toY = (value) => padTop + (1 - value / range) * (height - padTop - padBottom);
 
-  // Y-axis labels
   const yTicks = [0, maxVal * 0.25, maxVal * 0.5, maxVal * 0.75, maxVal];
 
-  // X-axis: pick ~4 evenly spaced dates
   const xTickCount = 4;
   const xTicks = [];
   for (let i = 0; i < xTickCount; i++) {
     const ts = minTime + (i / (xTickCount - 1)) * timeRange;
     xTicks.push({ ts, label: formatDate(new Date(ts)) });
   }
+
+  const makePath = (pts) => pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${toX(p.timestamp)},${toY(p.value)}`).join(' ');
 
   return (
     <div className="portfolio-chart-card">
@@ -166,40 +209,41 @@ function GrowthProjectionChart({ investments, funds }) {
             </g>
           ))}
 
-          {/* X-axis labels — real dates */}
+          {/* X-axis labels */}
           {xTicks.map((tick, i) => (
             <text key={i} x={toX(tick.ts)} y={height - 6} textAnchor="middle" className="chart-axis-label">
               {tick.label}
             </text>
           ))}
 
-          {/* S&P 500 Benchmark Line */}
-          {(() => {
-            const d = benchmarkPoints.map((p, i) => `${i === 0 ? 'M' : 'L'}${toX(p.timestamp)},${toY(p.value)}`).join(' ');
-            return (
-              <path d={d} fill="none" stroke="#94A3B8" strokeWidth="2" strokeDasharray="5,3" strokeLinecap="round" strokeLinejoin="round" />
-            );
-          })()}
+          {/* S&P 500 Benchmark */}
+          <path d={makePath(benchmarkPoints)} fill="none" stroke="#94A3B8" strokeWidth="1.5" strokeDasharray="5,3" strokeLinecap="round" strokeLinejoin="round" />
 
-          {/* Lines */}
-          {curves.map((curve) => {
-            const d = curve.points.map((p, i) => `${i === 0 ? 'M' : 'L'}${toX(p.timestamp)},${toY(p.value)}`).join(' ');
-            return (
-              <g key={curve.ticker}>
-                <path d={d} fill="none" stroke={curve.color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                <circle cx={toX(curve.points[curve.points.length - 1].timestamp)} cy={toY(curve.points[curve.points.length - 1].value)} r="4" fill={curve.color} />
-              </g>
-            );
-          })}
+          {/* Selected fund curve */}
+          {fundCurve && (
+            <g>
+              <path d={makePath(fundCurve.points)} fill="none" stroke={fundCurve.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <circle cx={toX(fundCurve.points[fundCurve.points.length - 1].timestamp)} cy={toY(fundCurve.points[fundCurve.points.length - 1].value)} r="3.5" fill={fundCurve.color} />
+            </g>
+          )}
+
+          {/* Aggregate portfolio curve */}
+          <path d={makePath(aggregatePoints)} fill="none" stroke="#003A70" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+          <circle cx={toX(aggregatePoints[aggregatePoints.length - 1].timestamp)} cy={toY(aggregatePoints[aggregatePoints.length - 1].value)} r="4" fill="#003A70" />
         </svg>
         <div className="chart-legend">
-          {curves.map((c) => (
-            <div key={c.ticker} className="chart-legend-item">
-              <span className="chart-legend-dot" style={{ background: c.color }} />
-              <span className="chart-legend-ticker">{c.ticker}</span>
-              <span className="chart-legend-pct">{formatCurrency(c.points[c.points.length - 1].value)}</span>
+          <div className="chart-legend-item">
+            <span className="chart-legend-dot" style={{ background: '#003A70' }} />
+            <span className="chart-legend-ticker">Portfolio</span>
+            <span className="chart-legend-pct">{formatCurrency(aggregatePoints[aggregatePoints.length - 1].value)}</span>
+          </div>
+          {fundCurve && (
+            <div className="chart-legend-item">
+              <span className="chart-legend-dot" style={{ background: fundCurve.color }} />
+              <span className="chart-legend-ticker">{fundCurve.ticker}</span>
+              <span className="chart-legend-pct">{formatCurrency(fundCurve.points[fundCurve.points.length - 1].value)}</span>
             </div>
-          ))}
+          )}
           <div className="chart-legend-item">
             <span className="chart-legend-dash" />
             <span className="chart-legend-ticker">S&P 500</span>
@@ -227,7 +271,12 @@ function PortfolioView({ user, onSignIn }) {
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState('');
   const [historicalData, setHistoricalData] = useState({});
+  const [selectedFund, setSelectedFund] = useState(null);
   const searchRef = useRef(null);
+
+  const toggleFundSelect = (ticker) => {
+    setSelectedFund((prev) => (prev === ticker ? null : ticker));
+  };
 
   useEffect(() => {
     if (user) {
@@ -361,8 +410,8 @@ function PortfolioView({ user, onSignIn }) {
         fund.name.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const totalInvested = investments.reduce((sum, inv) => sum + Number(inv.amount || 0), 0);
-  const totalProjected = investments.reduce((sum, inv) => sum + Number(inv.future_value || 0), 0);
+  const totalInvested = investments.reduce((sum, inv) => sum + Number(inv.amount), 0);
+  const totalProjected = investments.reduce((sum, inv) => sum + Number(inv.future_value), 0);
 
   // Unauthenticated state
   if (!user) {
@@ -529,50 +578,56 @@ function PortfolioView({ user, onSignIn }) {
           <div className="portfolio-main">
             {error && <p className="error">{error}</p>}
 
-            {/* Summary Cards */}
+            {/* Summary Bar */}
             {investments.length > 0 && (() => {
+              const missingFundData = investments.some((inv) => !funds.find((f) => f.ticker === inv.ticker));
               const weightedBeta = totalInvested > 0
-                ? investments.reduce((sum, inv) => sum + Number(inv.beta || 1.0) * Number(inv.amount), 0) / totalInvested
-                : 1.0;
-              const weightedSharpe = totalInvested > 0
+                ? investments.reduce((sum, inv) => sum + Number(inv.beta) * Number(inv.amount), 0) / totalInvested
+                : null;
+              const weightedSharpe = totalInvested > 0 && !missingFundData
                 ? investments.reduce((sum, inv) => {
                     const fundData = funds.find((f) => f.ticker === inv.ticker);
-                    const sharpe = fundData?.sharpeRatio || 0;
-                    return sum + sharpe * Number(inv.amount);
+                    return sum + fundData.sharpeRatio * Number(inv.amount);
                   }, 0) / totalInvested
+                : null;
+              const totalReturn = totalInvested > 0
+                ? ((totalProjected - totalInvested) / totalInvested) * 100
                 : 0;
-              const portfolioVolatility = totalInvested > 0
+              const portfolioVolatility = totalInvested > 0 && !missingFundData
                 ? investments.reduce((sum, inv) => {
                     const fundData = funds.find((f) => f.ticker === inv.ticker);
-                    const stdDev = fundData?.standardDeviation || 0.15;
-                    return sum + stdDev * Number(inv.amount);
+                    return sum + fundData.standardDeviation * Number(inv.amount);
                   }, 0) / totalInvested
-                : 0;
+                : null;
               return (
-              <div className="portfolio-summary">
-                <div className="summary-card">
-                  <p className="summary-card-label">Total Invested</p>
-                  <p className="summary-card-value">{formatCurrency(totalInvested)}</p>
+              <div className="portfolio-summary-bar">
+                <div className="summary-stat">
+                  <span className="summary-stat-label">Invested</span>
+                  <span className="summary-stat-value">{formatCurrency(totalInvested)}</span>
                 </div>
-                <div className="summary-card">
-                  <p className="summary-card-label">Total Projected Value</p>
-                  <p className="summary-card-value">{formatCurrency(totalProjected)}</p>
+                <div className="summary-stat">
+                  <span className="summary-stat-label">Projected</span>
+                  <span className="summary-stat-value">{formatCurrency(totalProjected)}</span>
                 </div>
-                <div className="summary-card">
-                  <p className="summary-card-label">Investments</p>
-                  <p className="summary-card-value">{investments.length}</p>
+                <div className="summary-stat">
+                  <span className="summary-stat-label">Return</span>
+                  <span className="summary-stat-value summary-stat-positive">+{totalReturn.toFixed(1)}%</span>
                 </div>
-                <div className="summary-card">
-                  <p className="summary-card-label">Portfolio Beta</p>
-                  <p className="summary-card-value">{weightedBeta.toFixed(2)}</p>
+                <div className="summary-stat">
+                  <span className="summary-stat-label">Holdings</span>
+                  <span className="summary-stat-value">{investments.length}</span>
                 </div>
-                <div className="summary-card">
-                  <p className="summary-card-label">Sharpe Ratio</p>
-                  <p className="summary-card-value">{weightedSharpe.toFixed(2)}</p>
+                <div className="summary-stat">
+                  <span className="summary-stat-label">Beta</span>
+                  <span className="summary-stat-value">{weightedBeta != null ? weightedBeta.toFixed(2) : <span className="summary-stat-error">ERR</span>}</span>
                 </div>
-                <div className="summary-card">
-                  <p className="summary-card-label">Volatility</p>
-                  <p className="summary-card-value">{(portfolioVolatility * 100).toFixed(1)}%</p>
+                <div className="summary-stat">
+                  <span className="summary-stat-label">Sharpe</span>
+                  <span className="summary-stat-value">{weightedSharpe != null ? weightedSharpe.toFixed(2) : <span className="summary-stat-error">ERR</span>}</span>
+                </div>
+                <div className="summary-stat">
+                  <span className="summary-stat-label">Volatility</span>
+                  <span className="summary-stat-value">{portfolioVolatility != null ? `${(portfolioVolatility * 100).toFixed(1)}%` : <span className="summary-stat-error">ERR</span>}</span>
                 </div>
               </div>
               );
@@ -582,7 +637,7 @@ function PortfolioView({ user, onSignIn }) {
             {investments.length > 0 && (
               <div className="portfolio-charts-row">
                 <AllocationChart investments={investments} />
-                <GrowthProjectionChart investments={investments} funds={funds} />
+                <GrowthProjectionChart investments={investments} funds={funds} selectedFund={selectedFund} />
               </div>
             )}
 
@@ -615,9 +670,15 @@ function PortfolioView({ user, onSignIn }) {
                     {investments.map((inv) => {
                       const weight = totalInvested > 0 ? (Number(inv.amount) / totalInvested * 100) : 0;
                       const fundData = funds.find((f) => f.ticker === inv.ticker);
-                      const sharpe = fundData?.sharpeRatio || 0;
+                      const sharpe = fundData?.sharpeRatio;
+                      const isSelected = selectedFund === inv.ticker;
                       return (
-                      <tr key={inv.id}>
+                      <tr
+                        key={inv.id}
+                        className={isSelected ? 'portfolio-row-selected' : ''}
+                        onClick={() => toggleFundSelect(inv.ticker)}
+                        style={{ cursor: 'pointer' }}
+                      >
                         <td>
                           {new Date(inv.created_at).toLocaleDateString('en-US', {
                             month: 'short', day: 'numeric', year: 'numeric',
@@ -631,12 +692,16 @@ function PortfolioView({ user, onSignIn }) {
                         <td>{inv.years} yr{inv.years !== 1 ? 's' : ''}</td>
                         <td>{formatCurrency(inv.future_value)}</td>
                         <td>
-                          <span className="portfolio-return-positive">
-                            +{Number(inv.return_pct || 0).toFixed(1)}%
-                          </span>
+                          {inv.return_pct != null ? (
+                            <span className="portfolio-return-positive">
+                              +{Number(inv.return_pct).toFixed(1)}%
+                            </span>
+                          ) : (
+                            <span className="portfolio-data-error">ERR</span>
+                          )}
                         </td>
-                        <td>{Number(inv.beta || 1.0).toFixed(2)}</td>
-                        <td>{sharpe.toFixed(2)}</td>
+                        <td>{inv.beta != null ? Number(inv.beta).toFixed(2) : <span className="portfolio-data-error">ERR</span>}</td>
+                        <td>{sharpe != null ? sharpe.toFixed(2) : <span className="portfolio-data-error">ERR</span>}</td>
                         {['return1Y', 'return3Y', 'return5Y'].map((key) => {
                           const hist = historicalData[inv.ticker];
                           const val = hist ? hist[key] : undefined;
@@ -655,7 +720,7 @@ function PortfolioView({ user, onSignIn }) {
                         <td>
                           <button
                             className="delete-btn"
-                            onClick={() => handleDelete(inv.id)}
+                            onClick={(e) => { e.stopPropagation(); handleDelete(inv.id); }}
                             title="Delete investment"
                           >
                             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
