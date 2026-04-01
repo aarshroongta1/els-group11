@@ -1,0 +1,29 @@
+frontend/src/App.css
+  f68015ea4915b424 1173-1175,1179-1180,1184-1195,1198,1200,1207,1209,1214-1215,1218-1225,1269-1285,1533-1542
+frontend/src/components/PortfolioView.js
+  f68015ea4915b424 84,98-160,162,164,167,172,175-176,195-196,212,219-227,230-232,235-244,274,277-279,413-414,581,583,585-587,590,592-594,596,599,601,603-606,608-610,612-614,616-618,620-622,624-626,628-630,640,674,676-681,695-701,703-704,723
+frontend/src/App.js
+  f68015ea4915b424 119-124,127-128,158-159,162-165
+backend/src/main/java/com/group11/mutualfund/service/MutualFundService.java
+  f68015ea4915b424 114-117,119-123,125-126,128
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.3",
+  "base_commit_sha": "9b011d1c238b9fade6ed352d643c3c8eeb0cee68",
+  "prompts": {
+    "f68015ea4915b424": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c8dea5d4-e5d1-4102-9a3d-612e5632d3a5",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Aarsh Roongta",
+      "messages": [],
+      "total_additions": 324,
+      "total_deletions": 216,
+      "accepted_lines": 250,
+      "overriden_lines": 0
+    }
+  }
+}
