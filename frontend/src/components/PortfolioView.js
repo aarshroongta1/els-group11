@@ -600,8 +600,8 @@ function PortfolioView({ user, onSignIn }) {
                       <th>Fund</th>
                       <th>Amount</th>
                       <th>Weight</th>
-                      <th>Horizon</th>
-                      <th>Projected Value</th>
+                      <th>Yrs</th>
+                      <th>Proj. Value</th>
                       <th>Return</th>
                       <th>Beta</th>
                       <th>Sharpe</th>
@@ -623,13 +623,8 @@ function PortfolioView({ user, onSignIn }) {
                             month: 'short', day: 'numeric', year: 'numeric',
                           })}
                         </td>
-                        <td>
+                        <td title={inv.fund_name || inv.ticker}>
                           <span className="portfolio-ticker">{inv.ticker}</span>
-                          {inv.fund_name && (
-                            <span style={{ marginLeft: '0.5rem', color: '#6B7C93', fontSize: '0.82rem' }}>
-                              {inv.fund_name}
-                            </span>
-                          )}
                         </td>
                         <td>{formatCurrency(inv.amount)}</td>
                         <td>{weight.toFixed(1)}%</td>
