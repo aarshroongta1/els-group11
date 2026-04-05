@@ -10,7 +10,7 @@ function InvestmentInput({ amount, onAmountChange }) {
           id="amount-input"
           type="number"
           className="input input-with-prefix"
-          placeholder="Enter investment amount (e.g. 10000)"
+          placeholder="Enter investment amount"
           min="0"
           step="100"
           value={amount}

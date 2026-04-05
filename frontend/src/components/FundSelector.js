@@ -67,7 +67,7 @@ function FundSelector({ funds, selectedFunds, onAddFund, onRemoveFund }) {
             id="fund-search"
             type="text"
             className="input search-input"
-            placeholder={atLimit ? 'Maximum funds selected' : 'Search by ticker or name...'}
+            placeholder={atLimit ? 'Maximum funds selected' : 'Search by ticker or name'}
             value={query}
             disabled={atLimit}
             onChange={(e) => {

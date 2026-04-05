@@ -10,7 +10,7 @@ function TimeHorizonInput({ duration, unit, onDurationChange, onUnitChange }) {
             id="duration-input"
             type="number"
             className="input"
-            placeholder="Enter duration (e.g. 10)"
+            placeholder="Duration"
             min="1"
             step="1"
             value={duration}
