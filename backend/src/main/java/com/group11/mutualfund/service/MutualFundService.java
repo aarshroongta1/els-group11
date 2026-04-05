@@ -1,9 +1,12 @@
 package com.group11.mutualfund.service;
 
 import com.group11.mutualfund.dto.BetaResponse;
+import com.group11.mutualfund.dto.FundComparisonResponse;
 import com.group11.mutualfund.dto.FutureValueResponse;
 import com.group11.mutualfund.dto.HistoricalPerformanceResponse;
 import com.group11.mutualfund.model.MutualFund;
+import com.group11.mutualfund.model.RecommendationResponse;
+import com.group11.mutualfund.model.UserInput;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -11,8 +14,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class MutualFundService {
@@ -105,6 +110,113 @@ public class MutualFundService {
      */
     public List<MutualFund> getAllMutualFunds() {
         return MUTUAL_FUNDS;
+    }
+
+    public Optional<MutualFund> findFund(String ticker) {
+        return MUTUAL_FUNDS.stream()
+                .filter(fund -> fund.getTicker().equalsIgnoreCase(ticker))
+                .findFirst();
+    }
+
+    public RecommendationResponse.RecommendedFund enrichRecommendation(String ticker, String explanation, UserInput input) {
+        MutualFund fund = findFund(ticker).orElse(null);
+        if (fund == null) {
+            return new RecommendationResponse.RecommendedFund(
+                    ticker,
+                    explanation,
+                    65,
+                    List.of("Included in the recommendation", "Limited fund details available")
+            );
+        }
+
+        int fitScore = calculateFitScore(fund, input);
+        List<String> highlights = buildHighlights(fund, input);
+
+        return new RecommendationResponse.RecommendedFund(
+                fund.getTicker(),
+                explanation,
+                fitScore,
+                highlights
+        );
+    }
+
+    public List<String> buildPortfolioWarnings(UserInput input, List<String> tickers) {
+        List<String> warnings = new java.util.ArrayList<>();
+        double years = input.getYears();
+        String riskLevel = input.getRiskLevel() == null ? "medium" : input.getRiskLevel().toLowerCase();
+
+        if ("high".equals(riskLevel) && years > 0 && years <= 3) {
+            warnings.add("High-risk investing may feel volatile over a short time horizon.");
+        }
+
+        if ("low".equals(riskLevel) && years >= 10) {
+            warnings.add("A low-risk approach may limit long-term growth over a long horizon.");
+        }
+
+        long equityLikeCount = tickers.stream()
+                .map(this::findFund)
+                .flatMap(Optional::stream)
+                .filter(fund -> fund.getStandardDeviation() >= 0.15)
+                .count();
+
+        if (equityLikeCount >= 3) {
+            warnings.add("This mix leans heavily toward equity-style risk and may move sharply in down markets.");
+        }
+
+        boolean sameStyle = tickers.stream()
+                .map(this::findFund)
+                .flatMap(Optional::stream)
+                .map(MutualFund::getType)
+                .distinct()
+                .count() == 1;
+
+        if (tickers.size() >= 3 && sameStyle) {
+            warnings.add("Consider mixing fund styles to improve diversification.");
+        }
+
+        return warnings;
+    }
+
+    public FundComparisonResponse compareFunds(List<String> tickers) {
+        List<MutualFund> funds = tickers.stream()
+                .map(this::findFund)
+                .flatMap(Optional::stream)
+                .limit(3)
+                .toList();
+
+        List<FundComparisonResponse.FundSnapshot> snapshots = funds.stream()
+                .map(fund -> new FundComparisonResponse.FundSnapshot(
+                        fund.getTicker(),
+                        fund.getName(),
+                        fund.getType(),
+                        fund.getExpectedReturn(),
+                        fund.getStandardDeviation(),
+                        fund.getExpenseRatio(),
+                        fund.getSharpeRatio(),
+                        fund.getReturn3Y(),
+                        fund.getReturn5Y(),
+                        classifyInvestorFit(fund)
+                ))
+                .toList();
+
+        String bestForGrowth = funds.stream()
+                .max(Comparator.comparingDouble(MutualFund::getExpectedReturn))
+                .map(MutualFund::getTicker)
+                .orElse("");
+        String bestForStability = funds.stream()
+                .min(Comparator.comparingDouble(MutualFund::getStandardDeviation))
+                .map(MutualFund::getTicker)
+                .orElse("");
+        String bestValue = funds.stream()
+                .min(Comparator.comparingDouble(MutualFund::getExpenseRatio))
+                .map(MutualFund::getTicker)
+                .orElse("");
+
+        String summary = funds.isEmpty()
+                ? "No valid funds were available to compare."
+                : buildComparisonSummary(bestForGrowth, bestForStability, bestValue);
+
+        return new FundComparisonResponse(snapshots, summary, bestForGrowth, bestForStability, bestValue);
     }
 
     /**
@@ -246,5 +358,81 @@ public class MutualFundService {
             .findFirst()
             .map(fund -> new HistoricalPerformanceResponse(ticker, fund.getReturn1Y(), fund.getReturn3Y(), fund.getReturn5Y()))
             .orElse(new HistoricalPerformanceResponse(ticker, null, null, null));
+    }
+
+    private int calculateFitScore(MutualFund fund, UserInput input) {
+        double score = 50;
+        String riskLevel = input.getRiskLevel() == null ? "medium" : input.getRiskLevel().toLowerCase();
+        double years = input.getYears();
+
+        score += switch (riskLevel) {
+            case "low" -> fund.getStandardDeviation() <= 0.10 ? 20 : fund.getStandardDeviation() <= 0.15 ? 8 : -10;
+            case "high" -> fund.getExpectedReturn() >= 0.15 ? 18 : fund.getExpectedReturn() >= 0.10 ? 8 : -6;
+            default -> fund.getSharpeRatio() >= 0.55 ? 15 : fund.getSharpeRatio() >= 0.35 ? 8 : 0;
+        };
+
+        if (years >= 10 && fund.getExpectedReturn() >= 0.12) {
+            score += 10;
+        } else if (years <= 3 && fund.getStandardDeviation() <= 0.12) {
+            score += 10;
+        }
+
+        if (fund.getExpenseRatio() <= 0.0010) {
+            score += 10;
+        } else if (fund.getExpenseRatio() >= 0.0060) {
+            score -= 8;
+        }
+
+        if (fund.getReturn5Y() != null && fund.getReturn5Y() >= 0.10) {
+            score += 8;
+        }
+
+        return Math.max(40, Math.min(98, (int) Math.round(score)));
+    }
+
+    private List<String> buildHighlights(MutualFund fund, UserInput input) {
+        List<String> highlights = new java.util.ArrayList<>();
+        String riskLevel = input.getRiskLevel() == null ? "medium" : input.getRiskLevel().toLowerCase();
+
+        if (fund.getExpenseRatio() <= 0.0010) {
+            highlights.add("Low cost");
+        }
+        if (fund.getSharpeRatio() >= 0.60) {
+            highlights.add("Strong risk-adjusted profile");
+        }
+        if (fund.getReturn5Y() != null && fund.getReturn5Y() >= 0.12) {
+            highlights.add("Solid 5-year performance");
+        }
+        if ("low".equals(riskLevel) && fund.getStandardDeviation() <= 0.10) {
+            highlights.add("Lower volatility fit");
+        }
+        if ("high".equals(riskLevel) && fund.getExpectedReturn() >= 0.15) {
+            highlights.add("Higher growth potential");
+        }
+        if (highlights.isEmpty()) {
+            highlights.add("Diversification potential");
+        }
+
+        return highlights.stream().limit(2).toList();
+    }
+
+    private String classifyInvestorFit(MutualFund fund) {
+        if (fund.getStandardDeviation() <= 0.10) {
+            return "Best for conservative investors";
+        }
+        if (fund.getExpectedReturn() >= 0.16 && fund.getStandardDeviation() >= 0.18) {
+            return "Best for growth-focused investors";
+        }
+        if (fund.getExpenseRatio() <= 0.0010) {
+            return "Best for cost-conscious long-term investors";
+        }
+        return "Best for balanced long-term investors";
+    }
+
+    private String buildComparisonSummary(String growthTicker, String stabilityTicker, String valueTicker) {
+        return String.format(
+                "%s stands out for growth, %s looks strongest for stability, and %s offers the best cost efficiency.",
+                growthTicker, stabilityTicker, valueTicker
+        );
     }
 }

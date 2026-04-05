@@ -1,10 +1,13 @@
 package com.group11.mutualfund.model;
 
+import java.util.Map;
+
 public class UserInput {
 
     private double amount;
     private int years;
     private String riskLevel;
+    private Map<String, Double> projectedReturns;
 
     public double getAmount() {
         return amount;
@@ -28,5 +31,13 @@ public class UserInput {
 
     public void setRiskLevel(String riskLevel) {
         this.riskLevel = riskLevel;
+    }
+
+    public Map<String, Double> getProjectedReturns() {
+        return projectedReturns;
+    }
+
+    public void setProjectedReturns(Map<String, Double> projectedReturns) {
+        this.projectedReturns = projectedReturns;
     }
 }

@@ -9,6 +9,7 @@ import Navbar from "./components/Navbar";
 import AuthPage from "./components/AuthPage";
 import StressTest from "./components/StressTest";
 import MarketInsights from "./components/MarketInsights";
+import ChatBot from "./components/ChatBot";
 import "./App.css";
 
 const API_BASE_URL = "http://localhost:8080/api";
@@ -25,6 +26,8 @@ function App() {
   const [user, setUser] = useState(null);
   const [sessionLoading, setSessionLoading] = useState(true);
   const [currentView, setCurrentView] = useState("calculator");
+  const [riskLevel, setRiskLevel] = useState("medium");
+  const [recommendation, setRecommendation] = useState(null);
 
   // Fetch mutual funds on component mount
   useEffect(() => {
@@ -180,31 +183,45 @@ function App() {
     setError(null);
 
     try {
+      const projectedReturns = {};
+      results.forEach((r) => {
+        projectedReturns[r.fundTicker] = r.futureValue;
+      });
+
       const response = await fetch(`${API_BASE_URL}/recommend`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          riskLevel: "medium", // you can later replace this with user input
-        }),
+          amount: parseFloat(amount),
+          years: getYears(),
+          riskLevel: riskLevel,
+          projectedReturns: projectedReturns
+        })
       });
 
       const data = await response.json();
-      console.log(data);
-
-      alert(
-        "Recommended Funds: " +
-          data.recommendedFunds.join(", ") +
-          "\n\n" +
-          data.explanation,
-      );
+      setRecommendation(data);
     } catch (err) {
       setError("Failed to get recommendation");
     } finally {
       setLoading(false);
     }
   };
+
+  const chatbotContext = {
+    selectedFunds,
+    amount: amount ? parseFloat(amount) : null,
+    years: getYears() || null,
+    riskLevel,
+    recommendedFunds:
+      recommendation?.recommendedFunds?.map((fund) =>
+        typeof fund === "string" ? fund : fund.name,
+      ) ?? [],
+  };
+
+  const recommendationIntro =
+    recommendation?.explanation ||
+    `These are the funds we recommend based on your ${riskLevel} risk level, ${getYears()} year time horizon, and the overall fit of each fund.`;
   const renderCalculator = () => (
     <div className="app-content">
       <aside className="sidebar">
@@ -227,6 +244,20 @@ function App() {
             onDurationChange={setDuration}
             onUnitChange={setTimeUnit}
           />
+          <div className="field">
+            <label className="label">
+              Risk Level <span className="required">*</span>
+            </label>
+            <select
+              className="input"
+              value={riskLevel}
+              onChange={(e) => setRiskLevel(e.target.value)}
+            >
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
 
           <button
             className="button"
@@ -248,14 +279,60 @@ function App() {
       </aside>
 
       <main className="main-panel">
-        {results.length > 0 ? (
+        {results.length > 0 || recommendation ? (
           <div className="results-section">
-            <div className="fund-columns">
-              {results.map((result) => (
-                <ResultsCard key={result.fundTicker} result={result} user={user} onSave={handleSaveInvestment} onNavigate={handleViewChange} />
-              ))}
-            </div>
-            <StressTest results={results} />
+            {recommendation && (
+              <div className="recommendation-panel">
+                <h3 className="recommendation-header">Recommended Funds</h3>
+                <p className="recommendation-intro">{recommendationIntro}</p>
+                <div className="recommendation-content">
+                  {recommendation.recommendedFunds?.map((fundObj, index) => {
+                    const fundName = typeof fundObj === "string" ? fundObj : fundObj.name;
+                    const fundExplanation = typeof fundObj === "string" ? "" : fundObj.explanation;
+                    const fitScore = typeof fundObj === "string" ? null : fundObj.fitScore;
+                    const highlights = typeof fundObj === "string" ? [] : fundObj.highlights ?? [];
+                    return (
+                      <div key={index} className="recommendation-item">
+                        <div className="recommendation-item-top">
+                          <span className="recommendation-rank">Top pick {index + 1}</span>
+                          {fitScore != null && (
+                            <span className="recommendation-score">Fit Score {fitScore}</span>
+                          )}
+                          <strong className="recommendation-fund-name">{fundName}</strong>
+                        </div>
+                        {fundExplanation && (
+                          <p className="recommendation-text">{fundExplanation}</p>
+                        )}
+                        {highlights.length > 0 && (
+                          <div className="recommendation-highlights">
+                            {highlights.map((highlight) => (
+                              <span key={highlight} className="recommendation-highlight-chip">
+                                {highlight}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                {recommendation.warnings?.length > 0 && (
+                  <div className="recommendation-warnings">
+                    {recommendation.warnings.map((warning) => (
+                      <p key={warning} className="recommendation-warning">{warning}</p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            {results.length > 0 && (
+              <div className="fund-columns">
+                {results.map((result) => (
+                  <ResultsCard key={result.fundTicker} result={result} user={user} onSave={handleSaveInvestment} onNavigate={handleViewChange} />
+                ))}
+              </div>
+            )}
+            {results.length > 0 && <StressTest results={results} />}
           </div>
         ) : (
           <div className="welcome">
@@ -305,6 +382,7 @@ function App() {
       />
 
       {renderMainContent()}
+      <ChatBot context={chatbotContext} />
     </div>
   );
 }
