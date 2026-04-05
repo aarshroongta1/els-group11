@@ -69,16 +69,15 @@ function App() {
 
   const handleSaveInvestment = async (result) => {
     const fund = funds.find((f) => f.ticker === result.fundTicker);
-    const { error } = await supabase.from("investments").insert({
+    const { error } = await supabase.from("transactions").insert({
       user_id: user.id,
+      type: 'buy',
+      date: new Date().toISOString(),
       ticker: result.fundTicker,
       fund_name: fund?.name || result.fundTicker,
       amount: result.initialAmount,
-      years: result.years,
-      future_value: result.futureValue,
       expected_return: result.expectedReturn,
       beta: result.beta,
-      return_pct: result.returnPct,
     });
     if (error) throw error;
   };

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { supabase } from '../supabaseClient';
 
 const API_BASE_URL = "http://localhost:8080/api";
@@ -8,6 +8,8 @@ const CHART_COLORS = [
   '#F368E0', '#EE5A24', '#F9CA24', '#6C5CE7', '#FDA7DF',
 ];
 
+const MS_PER_YEAR = 365.25 * 24 * 60 * 60 * 1000;
+
 const formatCurrency = (value) =>
   new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -16,19 +18,16 @@ const formatCurrency = (value) =>
     maximumFractionDigits: 0,
   }).format(value);
 
-function AllocationChart({ investments }) {
+/* ─── Allocation Pie Chart ─── */
+function AllocationChart({ positions }) {
   const size = 200;
   const cx = size / 2;
   const cy = size / 2;
   const radius = 80;
 
-  // Aggregate by ticker
-  const byTicker = {};
-  investments.forEach((inv) => {
-    if (!byTicker[inv.ticker]) byTicker[inv.ticker] = 0;
-    byTicker[inv.ticker] += Number(inv.amount);
-  });
-  const entries = Object.entries(byTicker).sort((a, b) => b[1] - a[1]);
+  const entries = positions
+    .map((p) => [p.ticker, p.currentAmount])
+    .sort((a, b) => b[1] - a[1]);
   const total = entries.reduce((s, [, v]) => s + v, 0);
 
   if (total === 0) return null;
@@ -81,7 +80,8 @@ function AllocationChart({ investments }) {
   );
 }
 
-function GrowthProjectionChart({ investments, funds, selectedFund }) {
+/* ─── Growth Projection Chart (5-year forward) ─── */
+function GrowthProjectionChart({ positions, funds, selectedFund }) {
   const width = 500;
   const height = 220;
   const padL = 55;
@@ -95,67 +95,34 @@ function GrowthProjectionChart({ investments, funds, selectedFund }) {
     return `${m} '${y}`;
   };
 
-  if (investments.length === 0) return null;
+  if (positions.length === 0) return null;
 
-  const MS_PER_YEAR = 365.25 * 24 * 60 * 60 * 1000;
+  const now = new Date();
+  const projectionYears = 5;
+  const totalInvested = positions.reduce((s, p) => s + p.currentAmount, 0);
 
-  // Time range across all investments
-  const earliestStart = new Date(Math.min(...investments.map((inv) => new Date(inv.created_at).getTime())));
-  const latestEnd = new Date(Math.max(...investments.map((inv) => {
-    const s = new Date(inv.created_at);
-    s.setFullYear(s.getFullYear() + Number(inv.years));
-    return s.getTime();
-  })));
-  const longestYears = Math.max(...investments.map((inv) => Number(inv.years)), 1);
-  const totalSpanYears = Math.ceil((latestEnd.getTime() - earliestStart.getTime()) / MS_PER_YEAR);
-  const steps = Math.max(totalSpanYears, 1);
-
-  // Build aggregate portfolio curve
+  // Build aggregate portfolio curve (5 years forward from today)
   const aggregatePoints = [];
-  for (let y = 0; y <= steps; y++) {
-    const date = new Date(earliestStart);
+  for (let y = 0; y <= projectionYears; y++) {
+    const date = new Date(now);
     date.setFullYear(date.getFullYear() + y);
-    const ts = date.getTime();
-
     let totalValue = 0;
-    investments.forEach((inv) => {
-      const invStart = new Date(inv.created_at).getTime();
-      if (ts < invStart) return; // investment hasn't started yet
-      const yearsElapsed = (ts - invStart) / MS_PER_YEAR;
-      const capped = Math.min(yearsElapsed, Number(inv.years));
-      totalValue += Number(inv.amount) * Math.exp(Number(inv.expected_return) * capped);
+    positions.forEach((pos) => {
+      totalValue += pos.currentAmount * Math.exp(pos.expectedReturn * y);
     });
-
-    aggregatePoints.push({ date, timestamp: ts, value: totalValue });
+    aggregatePoints.push({ date, timestamp: date.getTime(), value: totalValue });
   }
 
   // Build individual fund curve for the selected fund
   let fundCurve = null;
   if (selectedFund) {
-    const matching = investments.filter((inv) => inv.ticker === selectedFund);
-    if (matching.length > 0) {
-      const invStart = new Date(Math.min(...matching.map((inv) => new Date(inv.created_at).getTime())));
-      const invEnd = new Date(Math.max(...matching.map((inv) => {
-        const s = new Date(inv.created_at);
-        s.setFullYear(s.getFullYear() + Number(inv.years));
-        return s.getTime();
-      })));
-      const spanYears = Math.ceil((invEnd.getTime() - invStart.getTime()) / MS_PER_YEAR);
-
+    const pos = positions.find((p) => p.ticker === selectedFund);
+    if (pos) {
       const points = [];
-      for (let y = 0; y <= Math.max(spanYears, 1); y++) {
-        const date = new Date(invStart);
+      for (let y = 0; y <= projectionYears; y++) {
+        const date = new Date(now);
         date.setFullYear(date.getFullYear() + y);
-        const ts = date.getTime();
-        let val = 0;
-        matching.forEach((inv) => {
-          const iStart = new Date(inv.created_at).getTime();
-          if (ts < iStart) return;
-          const elapsed = (ts - iStart) / MS_PER_YEAR;
-          const capped = Math.min(elapsed, Number(inv.years));
-          val += Number(inv.amount) * Math.exp(Number(inv.expected_return) * capped);
-        });
-        points.push({ date, timestamp: ts, value: val });
+        points.push({ date, timestamp: date.getTime(), value: pos.currentAmount * Math.exp(pos.expectedReturn * y) });
       }
       fundCurve = { ticker: selectedFund, points, color: '#2E86DE' };
     }
@@ -164,15 +131,13 @@ function GrowthProjectionChart({ investments, funds, selectedFund }) {
   // S&P 500 benchmark curve
   const spyFund = funds.find((f) => f.ticker === 'SPY');
   const spyReturn = spyFund ? spyFund.expectedReturn : 0.1635;
-  const totalInvested = investments.reduce((s, inv) => s + Number(inv.amount), 0);
   const benchmarkPoints = [];
-  for (let y = 0; y <= longestYears; y++) {
-    const date = new Date(earliestStart);
+  for (let y = 0; y <= projectionYears; y++) {
+    const date = new Date(now);
     date.setFullYear(date.getFullYear() + y);
     benchmarkPoints.push({ date, timestamp: date.getTime(), value: totalInvested * Math.exp(spyReturn * y) });
   }
 
-  // Find global min/max (aggregate + benchmark + selected fund curve)
   const allPoints = [...aggregatePoints, ...benchmarkPoints, ...(fundCurve ? fundCurve.points : [])];
   const minTime = Math.min(...allPoints.map((p) => p.timestamp));
   const maxTime = Math.max(...allPoints.map((p) => p.timestamp));
@@ -184,7 +149,6 @@ function GrowthProjectionChart({ investments, funds, selectedFund }) {
   const toY = (value) => padTop + (1 - value / range) * (height - padTop - padBottom);
 
   const yTicks = [0, maxVal * 0.25, maxVal * 0.5, maxVal * 0.75, maxVal];
-
   const xTickCount = 4;
   const xTicks = [];
   for (let i = 0; i < xTickCount; i++) {
@@ -195,72 +159,194 @@ function GrowthProjectionChart({ investments, funds, selectedFund }) {
   const makePath = (pts) => pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${toX(p.timestamp)},${toY(p.value)}`).join(' ');
 
   return (
-    <div className="portfolio-chart-card">
-      <h3 className="portfolio-chart-title">Growth Projection</h3>
-      <div className="portfolio-chart-content">
-        <svg viewBox={`0 0 ${width} ${height}`} className="growth-projection-chart">
-          {/* Grid lines */}
-          {yTicks.map((val, i) => (
-            <g key={i}>
-              <line x1={padL} y1={toY(val)} x2={width - padR} y2={toY(val)} stroke="#E8EEF5" strokeWidth="1" />
-              <text x={padL - 8} y={toY(val) + 4} textAnchor="end" className="chart-axis-label">
-                {val >= 1000 ? `$${(val / 1000).toFixed(0)}k` : `$${val.toFixed(0)}`}
-              </text>
-            </g>
-          ))}
-
-          {/* X-axis labels */}
-          {xTicks.map((tick, i) => (
-            <text key={i} x={toX(tick.ts)} y={height - 6} textAnchor="middle" className="chart-axis-label">
-              {tick.label}
+    <>
+      <svg viewBox={`0 0 ${width} ${height}`} className="growth-projection-chart">
+        {yTicks.map((val, i) => (
+          <g key={i}>
+            <line x1={padL} y1={toY(val)} x2={width - padR} y2={toY(val)} stroke="#E8EEF5" strokeWidth="1" />
+            <text x={padL - 8} y={toY(val) + 4} textAnchor="end" className="chart-axis-label">
+              {val >= 1000 ? `$${(val / 1000).toFixed(0)}k` : `$${val.toFixed(0)}`}
             </text>
-          ))}
-
-          {/* S&P 500 Benchmark */}
-          <path d={makePath(benchmarkPoints)} fill="none" stroke="#94A3B8" strokeWidth="1.5" strokeDasharray="5,3" strokeLinecap="round" strokeLinejoin="round" />
-
-          {/* Selected fund curve */}
-          {fundCurve && (
-            <g>
-              <path d={makePath(fundCurve.points)} fill="none" stroke={fundCurve.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              <circle cx={toX(fundCurve.points[fundCurve.points.length - 1].timestamp)} cy={toY(fundCurve.points[fundCurve.points.length - 1].value)} r="3.5" fill={fundCurve.color} />
-            </g>
-          )}
-
-          {/* Aggregate portfolio curve */}
-          <path d={makePath(aggregatePoints)} fill="none" stroke="#003A70" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-          <circle cx={toX(aggregatePoints[aggregatePoints.length - 1].timestamp)} cy={toY(aggregatePoints[aggregatePoints.length - 1].value)} r="4" fill="#003A70" />
-        </svg>
-        <div className="chart-legend">
+          </g>
+        ))}
+        {xTicks.map((tick, i) => (
+          <text key={i} x={toX(tick.ts)} y={height - 6} textAnchor="middle" className="chart-axis-label">
+            {tick.label}
+          </text>
+        ))}
+        <path d={makePath(benchmarkPoints)} fill="none" stroke="#94A3B8" strokeWidth="1.5" strokeDasharray="5,3" strokeLinecap="round" strokeLinejoin="round" />
+        {fundCurve && (
+          <g>
+            <path d={makePath(fundCurve.points)} fill="none" stroke={fundCurve.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx={toX(fundCurve.points[fundCurve.points.length - 1].timestamp)} cy={toY(fundCurve.points[fundCurve.points.length - 1].value)} r="3.5" fill={fundCurve.color} />
+          </g>
+        )}
+        <path d={makePath(aggregatePoints)} fill="none" stroke="#003A70" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx={toX(aggregatePoints[aggregatePoints.length - 1].timestamp)} cy={toY(aggregatePoints[aggregatePoints.length - 1].value)} r="4" fill="#003A70" />
+      </svg>
+      <div className="chart-legend">
+        <div className="chart-legend-item">
+          <span className="chart-legend-dot" style={{ background: '#003A70' }} />
+          <span className="chart-legend-ticker">Portfolio</span>
+          <span className="chart-legend-pct">{formatCurrency(aggregatePoints[aggregatePoints.length - 1].value)}</span>
+        </div>
+        {fundCurve && (
           <div className="chart-legend-item">
-            <span className="chart-legend-dot" style={{ background: '#003A70' }} />
-            <span className="chart-legend-ticker">Portfolio</span>
-            <span className="chart-legend-pct">{formatCurrency(aggregatePoints[aggregatePoints.length - 1].value)}</span>
+            <span className="chart-legend-dot" style={{ background: fundCurve.color }} />
+            <span className="chart-legend-ticker">{fundCurve.ticker}</span>
+            <span className="chart-legend-pct">{formatCurrency(fundCurve.points[fundCurve.points.length - 1].value)}</span>
           </div>
-          {fundCurve && (
-            <div className="chart-legend-item">
-              <span className="chart-legend-dot" style={{ background: fundCurve.color }} />
-              <span className="chart-legend-ticker">{fundCurve.ticker}</span>
-              <span className="chart-legend-pct">{formatCurrency(fundCurve.points[fundCurve.points.length - 1].value)}</span>
-            </div>
-          )}
-          <div className="chart-legend-item">
-            <span className="chart-legend-dash" />
-            <span className="chart-legend-ticker">S&P 500</span>
-            <span className="chart-legend-pct">{formatCurrency(benchmarkPoints[benchmarkPoints.length - 1].value)}</span>
-          </div>
+        )}
+        <div className="chart-legend-item">
+          <span className="chart-legend-dash" />
+          <span className="chart-legend-ticker">S&P 500</span>
+          <span className="chart-legend-pct">{formatCurrency(benchmarkPoints[benchmarkPoints.length - 1].value)}</span>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
+/* ─── Historical "Since Inception" Chart ─── */
+function HistoricalValueChart({ transactions, period }) {
+  const width = 500;
+  const height = 220;
+  const padL = 55;
+  const padR = 15;
+  const padTop = 15;
+  const padBottom = 30;
+
+  const formatDate = (date) => {
+    const m = date.toLocaleString('en-US', { month: 'short' });
+    const y = date.getFullYear().toString().slice(-2);
+    return `${m} '${y}`;
+  };
+
+  if (transactions.length === 0) return null;
+
+  const now = new Date();
+  const firstDate = new Date(transactions[0].date);
+
+  // Determine start date based on period filter
+  let startDate;
+  if (period === '1M') {
+    startDate = new Date(now); startDate.setDate(startDate.getDate() - 30);
+  } else if (period === '3M') {
+    startDate = new Date(now); startDate.setMonth(startDate.getMonth() - 3);
+  } else if (period === '1Y') {
+    startDate = new Date(now); startDate.setFullYear(startDate.getFullYear() - 1);
+  } else {
+    startDate = firstDate;
+  }
+  if (startDate < firstDate) startDate = firstDate;
+
+  const startMs = startDate.getTime();
+  const endMs = now.getTime();
+  const span = endMs - startMs;
+  if (span <= 0) return null;
+
+  // Generate ~80 evaluation points
+  const numPoints = 80;
+  const dataPoints = [];
+
+  for (let i = 0; i <= numPoints; i++) {
+    const evalMs = startMs + (i / numPoints) * span;
+    const evalDate = new Date(evalMs);
+
+    // Compute portfolio value at this date
+    // Group transactions by ticker up to this date
+    const byTicker = {};
+    transactions.forEach((tx) => {
+      if (new Date(tx.date).getTime() > evalMs) return;
+      if (!byTicker[tx.ticker]) byTicker[tx.ticker] = { buys: [], sells: [] };
+      byTicker[tx.ticker][tx.type === 'buy' ? 'buys' : 'sells'].push(tx);
+    });
+
+    let portfolioValue = 0;
+    Object.entries(byTicker).forEach(([, { buys, sells }]) => {
+      const totalBought = buys.reduce((s, tx) => s + Number(tx.amount), 0);
+      const totalSold = sells.reduce((s, tx) => s + Number(tx.amount), 0);
+      const netInvested = totalBought - totalSold;
+      if (netInvested <= 0) return;
+
+      // Weighted average buy date and expected return
+      const weightedDateMs = buys.reduce((s, tx) => s + new Date(tx.date).getTime() * Number(tx.amount), 0) / totalBought;
+      const weightedReturn = buys.reduce((s, tx) => s + Number(tx.expected_return) * Number(tx.amount), 0) / totalBought;
+
+      const yearsElapsed = (evalMs - weightedDateMs) / MS_PER_YEAR;
+      portfolioValue += netInvested * Math.exp(weightedReturn * Math.max(yearsElapsed, 0));
+    });
+
+    dataPoints.push({ date: evalDate, timestamp: evalMs, value: portfolioValue });
+  }
+
+  if (dataPoints.length === 0) return null;
+
+  const minTime = dataPoints[0].timestamp;
+  const maxTime = dataPoints[dataPoints.length - 1].timestamp;
+  const timeRange = maxTime - minTime || 1;
+  const maxVal = Math.max(...dataPoints.map((p) => p.value));
+  const minVal = Math.min(...dataPoints.map((p) => p.value));
+  const valRange = maxVal - minVal || 1;
+
+  const toX = (ts) => padL + ((ts - minTime) / timeRange) * (width - padL - padR);
+  const toY = (value) => padTop + (1 - (value - minVal) / valRange) * (height - padTop - padBottom);
+
+  const yTicks = [minVal, minVal + valRange * 0.33, minVal + valRange * 0.66, maxVal];
+  const xTickCount = 4;
+  const xTicks = [];
+  for (let i = 0; i < xTickCount; i++) {
+    const ts = minTime + (i / (xTickCount - 1)) * timeRange;
+    xTicks.push({ ts, label: formatDate(new Date(ts)) });
+  }
+
+  const makePath = (pts) => pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${toX(p.timestamp)},${toY(p.value)}`).join(' ');
+
+  const totalGain = dataPoints[dataPoints.length - 1].value - dataPoints[0].value;
+  const lineColor = totalGain >= 0 ? '#059669' : '#DC2626';
+
+  return (
+    <>
+      <svg viewBox={`0 0 ${width} ${height}`} className="growth-projection-chart">
+        {yTicks.map((val, i) => (
+          <g key={i}>
+            <line x1={padL} y1={toY(val)} x2={width - padR} y2={toY(val)} stroke="#E8EEF5" strokeWidth="1" />
+            <text x={padL - 8} y={toY(val) + 4} textAnchor="end" className="chart-axis-label">
+              {val >= 1000 ? `$${(val / 1000).toFixed(0)}k` : `$${val.toFixed(0)}`}
+            </text>
+          </g>
+        ))}
+        {xTicks.map((tick, i) => (
+          <text key={i} x={toX(tick.ts)} y={height - 6} textAnchor="middle" className="chart-axis-label">
+            {tick.label}
+          </text>
+        ))}
+        <path d={makePath(dataPoints)} fill="none" stroke={lineColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx={toX(dataPoints[dataPoints.length - 1].timestamp)} cy={toY(dataPoints[dataPoints.length - 1].value)} r="4" fill={lineColor} />
+      </svg>
+      <div className="chart-legend">
+        <div className="chart-legend-item">
+          <span className="chart-legend-dot" style={{ background: lineColor }} />
+          <span className="chart-legend-ticker">Portfolio</span>
+          <span className="chart-legend-pct">{formatCurrency(dataPoints[dataPoints.length - 1].value)}</span>
+        </div>
+        <div className="chart-legend-item">
+          <span className="chart-legend-ticker" style={{ color: lineColor, fontWeight: 700 }}>
+            {totalGain >= 0 ? '+' : ''}{formatCurrency(totalGain)}
+          </span>
+        </div>
+      </div>
+    </>
+  );
+}
+
+/* ─── Main PortfolioView Component ─── */
 function PortfolioView({ user, onSignIn }) {
-  const [investments, setInvestments] = useState([]);
+  const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Add investment form state
+  // Form state
   const [funds, setFunds] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -270,26 +356,122 @@ function PortfolioView({ user, onSignIn }) {
   const [timeUnit, setTimeUnit] = useState('years');
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState('');
+  const [txType, setTxType] = useState('buy');
+
+  // Chart/display state
   const [historicalData, setHistoricalData] = useState({});
   const [selectedFund, setSelectedFund] = useState(null);
+  const [chartMode, setChartMode] = useState('projected');
+  const [historyPeriod, setHistoryPeriod] = useState('ALL');
   const searchRef = useRef(null);
 
   const toggleFundSelect = (ticker) => {
     setSelectedFund((prev) => (prev === ticker ? null : ticker));
   };
 
+  /* ─── Derive positions from transactions ─── */
+  const positions = useMemo(() => {
+    const byTicker = {};
+    transactions.forEach((tx) => {
+      if (!byTicker[tx.ticker]) byTicker[tx.ticker] = { buys: [], sells: [], fund_name: tx.fund_name };
+      byTicker[tx.ticker][tx.type === 'buy' ? 'buys' : 'sells'].push(tx);
+      byTicker[tx.ticker].fund_name = tx.fund_name;
+    });
+
+    const result = [];
+    Object.entries(byTicker).forEach(([ticker, { buys, sells, fund_name }]) => {
+      const totalBought = buys.reduce((s, tx) => s + Number(tx.amount), 0);
+      const totalSold = sells.reduce((s, tx) => s + Number(tx.amount), 0);
+      const currentAmount = totalBought - totalSold;
+      if (currentAmount <= 0) return;
+
+      const weightedReturn = buys.reduce((s, tx) => s + Number(tx.expected_return) * Number(tx.amount), 0) / totalBought;
+      const weightedBeta = buys.reduce((s, tx) => s + Number(tx.beta) * Number(tx.amount), 0) / totalBought;
+      const earliestBuy = new Date(Math.min(...buys.map((tx) => new Date(tx.date).getTime())));
+
+      result.push({
+        ticker,
+        fund_name,
+        currentAmount,
+        totalBought,
+        totalSold,
+        expectedReturn: weightedReturn,
+        beta: weightedBeta,
+        earliestBuy,
+      });
+    });
+    return result;
+  }, [transactions]);
+
+  /* ─── Derive gains ─── */
+  const { totalUnrealizedGain, totalRealizedGain, positionsWithGains } = useMemo(() => {
+    const now = new Date();
+    let totalUnrealizedGain = 0;
+    let totalRealizedGain = 0;
+
+    // Unrealized gains
+    const positionsWithGains = positions.map((pos) => {
+      const yearsHeld = (now.getTime() - pos.earliestBuy.getTime()) / MS_PER_YEAR;
+      const projectedCurrentValue = pos.currentAmount * Math.exp(pos.expectedReturn * yearsHeld);
+      const unrealizedGain = projectedCurrentValue - pos.currentAmount;
+      totalUnrealizedGain += unrealizedGain;
+      return { ...pos, projectedCurrentValue, unrealizedGain, yearsHeld };
+    });
+
+    // Realized gains
+    const byTicker = {};
+    transactions.forEach((tx) => {
+      if (!byTicker[tx.ticker]) byTicker[tx.ticker] = { buys: [], sells: [] };
+      byTicker[tx.ticker][tx.type === 'buy' ? 'buys' : 'sells'].push(tx);
+    });
+
+    Object.entries(byTicker).forEach(([, { buys, sells }]) => {
+      if (sells.length === 0) return;
+
+      const allTx = [...buys, ...sells].sort((a, b) => new Date(a.date) - new Date(b.date));
+      let costBasisPool = 0;
+      let positionSize = 0;
+
+      allTx.forEach((tx) => {
+        const amt = Number(tx.amount);
+        if (tx.type === 'buy') {
+          costBasisPool += amt;
+          positionSize += amt;
+        } else {
+          const proportionalCost = positionSize > 0 ? (amt / positionSize) * costBasisPool : amt;
+          const buyDates = buys.filter((b) => new Date(b.date) <= new Date(tx.date));
+          if (buyDates.length > 0) {
+            const earliestBuyMs = Math.min(...buyDates.map((b) => new Date(b.date).getTime()));
+            const weightedReturn = buyDates.reduce((s, b) => s + Number(b.expected_return) * Number(b.amount), 0) /
+              buyDates.reduce((s, b) => s + Number(b.amount), 0);
+            const yearsHeld = (new Date(tx.date).getTime() - earliestBuyMs) / MS_PER_YEAR;
+            const projectedValueAtSell = proportionalCost * Math.exp(weightedReturn * Math.max(yearsHeld, 0));
+            totalRealizedGain += projectedValueAtSell - proportionalCost;
+          }
+          costBasisPool -= proportionalCost;
+          positionSize -= amt;
+        }
+      });
+    });
+
+    return { totalUnrealizedGain, totalRealizedGain, positionsWithGains };
+  }, [positions, transactions]);
+
+  const totalInvested = positions.reduce((s, p) => s + p.currentAmount, 0);
+  const totalCurrentValue = positionsWithGains.reduce((s, p) => s + p.projectedCurrentValue, 0);
+
+  /* ─── Data fetching ─── */
   useEffect(() => {
     if (user) {
-      fetchInvestments();
+      fetchTransactions();
     } else {
       setLoading(false);
     }
   }, [user]);
 
-  // Fetch historical performance for each unique ticker
   useEffect(() => {
-    if (investments.length === 0) return;
-    const tickers = [...new Set(investments.map((inv) => inv.ticker))];
+    if (positions.length === 0) return;
+    const tickers = [...new Set(positions.map((p) => p.ticker))];
     tickers.forEach((ticker) => {
       if (historicalData[ticker]) return;
       fetch(`${API_BASE_URL}/historical/${ticker}`)
@@ -299,9 +481,8 @@ function PortfolioView({ user, onSignIn }) {
         })
         .catch(() => {});
     });
-  }, [investments]);
+  }, [positions]);
 
-  // Fetch available funds for the search
   useEffect(() => {
     fetch(`${API_BASE_URL}/funds`)
       .then((res) => res.json())
@@ -309,7 +490,6 @@ function PortfolioView({ user, onSignIn }) {
       .catch(() => {});
   }, []);
 
-  // Close dropdown on outside click
   useEffect(() => {
     const handleClick = (e) => {
       if (searchRef.current && !searchRef.current.contains(e.target)) {
@@ -320,36 +500,24 @@ function PortfolioView({ user, onSignIn }) {
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  async function fetchInvestments() {
+  async function fetchTransactions() {
     setLoading(true);
     setError('');
     try {
       const { data, error: fetchError } = await supabase
-        .from('investments')
+        .from('transactions')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('date', { ascending: true });
       if (fetchError) throw fetchError;
-      setInvestments(data || []);
+      setTransactions(data || []);
     } catch (err) {
-      setError(err.message || 'Failed to load investments.');
+      setError(err.message || 'Failed to load transactions.');
     } finally {
       setLoading(false);
     }
   }
 
-  async function handleDelete(id) {
-    try {
-      const { error: deleteError } = await supabase
-        .from('investments')
-        .delete()
-        .eq('id', id);
-      if (deleteError) throw deleteError;
-      setInvestments((prev) => prev.filter((inv) => inv.id !== id));
-    } catch (err) {
-      setError(err.message || 'Failed to delete investment.');
-    }
-  }
-
+  /* ─── Form helpers ─── */
   const getYears = () => {
     const val = parseFloat(duration);
     if (!val || val <= 0) return 0;
@@ -358,62 +526,87 @@ function PortfolioView({ user, onSignIn }) {
     return val;
   };
 
-  const isAddFormValid = selectedTicker && amount && duration && parseFloat(amount) > 0 && getYears() > 0;
+  const resetForm = () => {
+    setSelectedTicker('');
+    setAmount('');
+    setDuration('');
+    setSearchQuery('');
+    setAddError('');
+  };
 
-  async function handleAddInvestment(e) {
+  const isBuyFormValid = selectedTicker && amount && duration && parseFloat(amount) > 0 && getYears() > 0;
+  const isSellFormValid = selectedTicker && amount && parseFloat(amount) > 0;
+  const isAddFormValid = txType === 'buy' ? isBuyFormValid : isSellFormValid;
+
+  // For sell mode, only show tickers with open positions
+  const filteredFunds = txType === 'sell'
+    ? positions.filter((p) =>
+        p.ticker.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.fund_name.toLowerCase().includes(searchQuery.toLowerCase())
+      ).map((p) => ({ ticker: p.ticker, name: p.fund_name }))
+    : funds.filter(
+        (fund) =>
+          fund.ticker !== selectedTicker &&
+          (fund.ticker.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            fund.name.toLowerCase().includes(searchQuery.toLowerCase()))
+      );
+
+  async function handleAddTransaction(e) {
     e.preventDefault();
     if (!isAddFormValid || adding) return;
     setAdding(true);
     setAddError('');
 
     try {
-      // Call the backend to calculate future value
-      const years = getYears();
-      const response = await fetch(
-        `${API_BASE_URL}/calculate?ticker=${selectedTicker}&amount=${amount}&years=${years}`
-      );
-      const data = await response.json();
-      const returnPct = ((data.futureValue - data.principal) / data.principal) * 100;
-      const fund = funds.find((f) => f.ticker === selectedTicker);
+      if (txType === 'sell') {
+        const position = positions.find((p) => p.ticker === selectedTicker);
+        if (!position || parseFloat(amount) > position.currentAmount) {
+          setAddError('Sell amount exceeds current position.');
+          setAdding(false);
+          return;
+        }
+        const { error: insertError } = await supabase.from('transactions').insert({
+          user_id: user.id,
+          type: 'sell',
+          date: new Date().toISOString(),
+          ticker: selectedTicker,
+          fund_name: position.fund_name,
+          amount: parseFloat(amount),
+          expected_return: position.expectedReturn,
+          beta: position.beta,
+        });
+        if (insertError) throw insertError;
+      } else {
+        const years = getYears();
+        const response = await fetch(
+          `${API_BASE_URL}/calculate?ticker=${selectedTicker}&amount=${amount}&years=${years}`
+        );
+        const data = await response.json();
+        const fund = funds.find((f) => f.ticker === selectedTicker);
 
-      // Save to Supabase
-      const { error: insertError } = await supabase.from('investments').insert({
-        user_id: user.id,
-        ticker: selectedTicker,
-        fund_name: fund?.name || selectedTicker,
-        amount: data.principal,
-        years: data.years,
-        future_value: data.futureValue,
-        expected_return: data.expectedReturn,
-        beta: data.beta,
-        return_pct: returnPct,
-      });
-      if (insertError) throw insertError;
+        const { error: insertError } = await supabase.from('transactions').insert({
+          user_id: user.id,
+          type: 'buy',
+          date: new Date().toISOString(),
+          ticker: selectedTicker,
+          fund_name: fund?.name || selectedTicker,
+          amount: data.principal,
+          expected_return: data.expectedReturn,
+          beta: data.beta,
+        });
+        if (insertError) throw insertError;
+      }
 
-      // Refresh list and reset form
-      await fetchInvestments();
-      setSelectedTicker('');
-      setAmount('');
-      setDuration('');
-      setSearchQuery('');
+      await fetchTransactions();
+      resetForm();
     } catch (err) {
-      setAddError(err.message || 'Failed to add investment.');
+      setAddError(err.message || `Failed to record ${txType}.`);
     } finally {
       setAdding(false);
     }
   }
 
-  const filteredFunds = funds.filter(
-    (fund) =>
-      fund.ticker !== selectedTicker &&
-      (fund.ticker.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        fund.name.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
-
-  const totalInvested = investments.reduce((sum, inv) => sum + Number(inv.amount), 0);
-  const totalProjected = investments.reduce((sum, inv) => sum + Number(inv.future_value), 0);
-
-  // Unauthenticated state
+  /* ─── Unauthenticated state ─── */
   if (!user) {
     return (
       <div className="app-content">
@@ -436,16 +629,35 @@ function PortfolioView({ user, onSignIn }) {
     );
   }
 
+  /* ─── Main authenticated view ─── */
   return (
     <div className="app-content">
-      {/* Sidebar — Add Investment Form */}
+      {/* Sidebar — Transaction Form */}
       <aside className="sidebar">
         <div className="sidebar-heading">
-          <span className="sidebar-label">Add Investment</span>
+          <span className="sidebar-label">Add Transaction</span>
           <div className="decorative-line" aria-hidden="true" />
         </div>
 
         <div className="form">
+          {/* Buy/Sell Toggle */}
+          <div className="portfolio-tx-toggle">
+            <button
+              type="button"
+              className={`portfolio-tx-toggle-btn${txType === 'buy' ? ' portfolio-tx-toggle-btn--active' : ''}`}
+              onClick={() => { setTxType('buy'); resetForm(); }}
+            >
+              Buy
+            </button>
+            <button
+              type="button"
+              className={`portfolio-tx-toggle-btn${txType === 'sell' ? ' portfolio-tx-toggle-btn--active portfolio-tx-toggle-btn--sell' : ''}`}
+              onClick={() => { setTxType('sell'); resetForm(); }}
+            >
+              Sell
+            </button>
+          </div>
+
           {/* Fund Search */}
           <div className="field" ref={searchRef}>
             <label className="label">
@@ -455,7 +667,9 @@ function PortfolioView({ user, onSignIn }) {
               <div className="portfolio-selected-fund">
                 <span className="portfolio-selected-ticker">{selectedTicker}</span>
                 <span className="portfolio-selected-name">
-                  {funds.find((f) => f.ticker === selectedTicker)?.name || ''}
+                  {txType === 'sell'
+                    ? positions.find((p) => p.ticker === selectedTicker)?.fund_name || ''
+                    : funds.find((f) => f.ticker === selectedTicker)?.name || ''}
                 </span>
                 <button
                   type="button"
@@ -477,7 +691,7 @@ function PortfolioView({ user, onSignIn }) {
                   <input
                     type="text"
                     className="input search-input"
-                    placeholder="Search by ticker or name..."
+                    placeholder={txType === 'sell' ? 'Search your holdings...' : 'Search by ticker or name...'}
                     value={searchQuery}
                     onChange={(e) => { setSearchQuery(e.target.value); setDropdownOpen(true); }}
                     onFocus={() => setDropdownOpen(true)}
@@ -501,7 +715,7 @@ function PortfolioView({ user, onSignIn }) {
                         </li>
                       ))
                     ) : (
-                      <li className="search-no-results">No funds found</li>
+                      <li className="search-no-results">{txType === 'sell' ? 'No open positions' : 'No funds found'}</li>
                     )}
                   </ul>
                 )}
@@ -512,225 +726,304 @@ function PortfolioView({ user, onSignIn }) {
           {/* Amount */}
           <div className="field">
             <label className="label">
-              Investment Amount <span className="required">*</span>
+              {txType === 'sell' ? 'Sell Amount' : 'Investment Amount'} <span className="required">*</span>
             </label>
             <div className="input-wrapper">
               <span className="input-prefix">$</span>
               <input
                 type="number"
                 className="input input-with-prefix"
-                placeholder="10,000"
+                placeholder={txType === 'sell' ? 'Amount to sell' : '10,000'}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 min="0"
               />
             </div>
+            {txType === 'sell' && selectedTicker && (() => {
+              const pos = positions.find((p) => p.ticker === selectedTicker);
+              return pos ? (
+                <span style={{ fontSize: '0.72rem', color: '#6B7C93', marginTop: '0.25rem', display: 'block' }}>
+                  Available: {formatCurrency(pos.currentAmount)}
+                </span>
+              ) : null;
+            })()}
           </div>
 
-          {/* Duration */}
-          <div className="field">
-            <label className="label">
-              Time Horizon <span className="required">*</span>
-            </label>
-            <div className="time-horizon-row">
-              <div className="input-wrapper time-horizon-input">
-                <input
-                  type="number"
-                  className="input"
-                  placeholder="5"
-                  value={duration}
-                  onChange={(e) => setDuration(e.target.value)}
-                  min="0"
-                />
-              </div>
-              <div className="time-unit-toggle">
-                {['days', 'months', 'years'].map((unit) => (
-                  <button
-                    key={unit}
-                    type="button"
-                    className={`time-unit-btn${timeUnit === unit ? ' time-unit-btn--active' : ''}`}
-                    onClick={() => setTimeUnit(unit)}
-                  >
-                    {unit}
-                  </button>
-                ))}
+          {/* Duration (buy only) */}
+          {txType === 'buy' && (
+            <div className="field">
+              <label className="label">
+                Time Horizon <span className="required">*</span>
+              </label>
+              <div className="time-horizon-row">
+                <div className="input-wrapper time-horizon-input">
+                  <input
+                    type="number"
+                    className="input"
+                    placeholder="5"
+                    value={duration}
+                    onChange={(e) => setDuration(e.target.value)}
+                    min="0"
+                  />
+                </div>
+                <div className="time-unit-toggle">
+                  {['days', 'months', 'years'].map((unit) => (
+                    <button
+                      key={unit}
+                      type="button"
+                      className={`time-unit-btn${timeUnit === unit ? ' time-unit-btn--active' : ''}`}
+                      onClick={() => setTimeUnit(unit)}
+                    >
+                      {unit}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {addError && <div className="error">{addError}</div>}
 
           <button
-            className="button"
+            className={`button${txType === 'sell' ? ' button-sell' : ''}`}
             disabled={!isAddFormValid || adding}
-            onClick={handleAddInvestment}
+            onClick={handleAddTransaction}
           >
-            {adding ? 'Adding...' : 'Add to Portfolio'}
+            {adding
+              ? (txType === 'sell' ? 'Selling...' : 'Adding...')
+              : (txType === 'sell' ? 'Sell from Portfolio' : 'Add to Portfolio')}
           </button>
         </div>
       </aside>
 
-      {/* Main Panel — Portfolio Content */}
+      {/* Main Panel */}
       <main className="main-panel">
         {loading ? (
-          <p className="portfolio-loading">Loading your investments...</p>
+          <p className="portfolio-loading">Loading your portfolio...</p>
         ) : (
           <div className="portfolio-main">
             {error && <p className="error">{error}</p>}
 
             {/* Summary Bar */}
-            {investments.length > 0 && (() => {
-              const missingFundData = investments.some((inv) => !funds.find((f) => f.ticker === inv.ticker));
+            {positions.length > 0 && (() => {
+              const missingFundData = positions.some((p) => !funds.find((f) => f.ticker === p.ticker));
               const weightedBeta = totalInvested > 0
-                ? investments.reduce((sum, inv) => sum + Number(inv.beta) * Number(inv.amount), 0) / totalInvested
+                ? positions.reduce((sum, p) => sum + p.beta * p.currentAmount, 0) / totalInvested
                 : null;
               const weightedSharpe = totalInvested > 0 && !missingFundData
-                ? investments.reduce((sum, inv) => {
-                    const fundData = funds.find((f) => f.ticker === inv.ticker);
-                    return sum + fundData.sharpeRatio * Number(inv.amount);
+                ? positions.reduce((sum, p) => {
+                    const fundData = funds.find((f) => f.ticker === p.ticker);
+                    return sum + (fundData?.sharpeRatio || 0) * p.currentAmount;
                   }, 0) / totalInvested
                 : null;
-              const totalReturn = totalInvested > 0
-                ? ((totalProjected - totalInvested) / totalInvested) * 100
-                : 0;
               const portfolioVolatility = totalInvested > 0 && !missingFundData
-                ? investments.reduce((sum, inv) => {
-                    const fundData = funds.find((f) => f.ticker === inv.ticker);
-                    return sum + fundData.standardDeviation * Number(inv.amount);
+                ? positions.reduce((sum, p) => {
+                    const fundData = funds.find((f) => f.ticker === p.ticker);
+                    return sum + (fundData?.standardDeviation || 0) * p.currentAmount;
                   }, 0) / totalInvested
                 : null;
               return (
-              <div className="portfolio-summary-bar">
-                <div className="summary-stat">
-                  <span className="summary-stat-label">Invested</span>
-                  <span className="summary-stat-value">{formatCurrency(totalInvested)}</span>
+                <div className="portfolio-summary-bar">
+                  <div className="summary-stat">
+                    <span className="summary-stat-label">Invested</span>
+                    <span className="summary-stat-value">{formatCurrency(totalInvested)}</span>
+                  </div>
+                  <div className="summary-stat">
+                    <span className="summary-stat-label">Current Value</span>
+                    <span className="summary-stat-value">{formatCurrency(totalCurrentValue)}</span>
+                  </div>
+                  <div className="summary-stat">
+                    <span className="summary-stat-label">Unrealized</span>
+                    <span className={`summary-stat-value ${totalUnrealizedGain >= 0 ? 'summary-stat-positive' : 'summary-stat-negative'}`}>
+                      {totalUnrealizedGain >= 0 ? '+' : ''}{formatCurrency(totalUnrealizedGain)}
+                    </span>
+                  </div>
+                  <div className="summary-stat">
+                    <span className="summary-stat-label">Realized</span>
+                    <span className={`summary-stat-value ${totalRealizedGain >= 0 ? 'summary-stat-positive' : 'summary-stat-negative'}`}>
+                      {totalRealizedGain >= 0 ? '+' : ''}{formatCurrency(totalRealizedGain)}
+                    </span>
+                  </div>
+                  <div className="summary-stat">
+                    <span className="summary-stat-label">Holdings</span>
+                    <span className="summary-stat-value">{positions.length}</span>
+                  </div>
+                  <div className="summary-stat">
+                    <span className="summary-stat-label">Beta</span>
+                    <span className="summary-stat-value">{weightedBeta != null ? weightedBeta.toFixed(2) : <span className="summary-stat-error">ERR</span>}</span>
+                  </div>
+                  <div className="summary-stat">
+                    <span className="summary-stat-label">Sharpe</span>
+                    <span className="summary-stat-value">{weightedSharpe != null ? weightedSharpe.toFixed(2) : <span className="summary-stat-error">ERR</span>}</span>
+                  </div>
+                  <div className="summary-stat">
+                    <span className="summary-stat-label">Volatility</span>
+                    <span className="summary-stat-value">{portfolioVolatility != null ? `${(portfolioVolatility * 100).toFixed(1)}%` : <span className="summary-stat-error">ERR</span>}</span>
+                  </div>
                 </div>
-                <div className="summary-stat">
-                  <span className="summary-stat-label">Projected</span>
-                  <span className="summary-stat-value">{formatCurrency(totalProjected)}</span>
-                </div>
-                <div className="summary-stat">
-                  <span className="summary-stat-label">Return</span>
-                  <span className="summary-stat-value summary-stat-positive">+{totalReturn.toFixed(1)}%</span>
-                </div>
-                <div className="summary-stat">
-                  <span className="summary-stat-label">Holdings</span>
-                  <span className="summary-stat-value">{investments.length}</span>
-                </div>
-                <div className="summary-stat">
-                  <span className="summary-stat-label">Beta</span>
-                  <span className="summary-stat-value">{weightedBeta != null ? weightedBeta.toFixed(2) : <span className="summary-stat-error">ERR</span>}</span>
-                </div>
-                <div className="summary-stat">
-                  <span className="summary-stat-label">Sharpe</span>
-                  <span className="summary-stat-value">{weightedSharpe != null ? weightedSharpe.toFixed(2) : <span className="summary-stat-error">ERR</span>}</span>
-                </div>
-                <div className="summary-stat">
-                  <span className="summary-stat-label">Volatility</span>
-                  <span className="summary-stat-value">{portfolioVolatility != null ? `${(portfolioVolatility * 100).toFixed(1)}%` : <span className="summary-stat-error">ERR</span>}</span>
-                </div>
-              </div>
               );
             })()}
 
             {/* Charts */}
-            {investments.length > 0 && (
+            {positions.length > 0 && (
               <div className="portfolio-charts-row">
-                <AllocationChart investments={investments} />
-                <GrowthProjectionChart investments={investments} funds={funds} selectedFund={selectedFund} />
+                <AllocationChart positions={positions} />
+                <div className="portfolio-chart-card">
+                  <div className="portfolio-chart-header">
+                    <div className="portfolio-chart-toggle">
+                      <button
+                        type="button"
+                        className={`portfolio-chart-toggle-btn${chartMode === 'projected' ? ' portfolio-chart-toggle-btn--active' : ''}`}
+                        onClick={() => setChartMode('projected')}
+                      >
+                        Projected
+                      </button>
+                      <button
+                        type="button"
+                        className={`portfolio-chart-toggle-btn${chartMode === 'since-inception' ? ' portfolio-chart-toggle-btn--active' : ''}`}
+                        onClick={() => setChartMode('since-inception')}
+                      >
+                        Since Inception
+                      </button>
+                    </div>
+                    {chartMode === 'since-inception' && (
+                      <div className="portfolio-period-filter">
+                        {['1M', '3M', '1Y', 'ALL'].map((p) => (
+                          <button
+                            key={p}
+                            type="button"
+                            className={`portfolio-period-btn${historyPeriod === p ? ' portfolio-period-btn--active' : ''}`}
+                            onClick={() => setHistoryPeriod(p)}
+                          >
+                            {p}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {chartMode === 'projected'
+                    ? <GrowthProjectionChart positions={positions} funds={funds} selectedFund={selectedFund} />
+                    : <HistoricalValueChart transactions={transactions} period={historyPeriod} />
+                  }
+                </div>
               </div>
             )}
 
-            {/* Table or Empty State */}
-            {investments.length === 0 ? (
+            {/* Holdings Table */}
+            {positions.length === 0 ? (
               <p className="empty-portfolio">
-                No investments yet. Use the sidebar to add your first investment.
+                No holdings yet. Use the sidebar to record your first transaction.
               </p>
             ) : (
               <div className="portfolio-table-wrapper">
+                <h3 className="portfolio-chart-title" style={{ padding: '1rem 1.25rem 0' }}>Holdings</h3>
                 <table className="portfolio-table">
                   <thead>
                     <tr>
-                      <th>Date</th>
                       <th>Fund</th>
-                      <th>Amount</th>
+                      <th>Cost Basis</th>
                       <th>Weight</th>
-                      <th>Yrs</th>
-                      <th>Proj. Value</th>
-                      <th>Return</th>
+                      <th>Current Value</th>
+                      <th>Unreal. Gain</th>
+                      <th>Unreal. %</th>
                       <th>Beta</th>
                       <th>Sharpe</th>
                       <th>1Y</th>
                       <th>3Y</th>
                       <th>5Y</th>
-                      <th></th>
                     </tr>
                   </thead>
                   <tbody>
-                    {investments.map((inv) => {
-                      const weight = totalInvested > 0 ? (Number(inv.amount) / totalInvested * 100) : 0;
-                      const fundData = funds.find((f) => f.ticker === inv.ticker);
+                    {positionsWithGains.map((pos) => {
+                      const weight = totalInvested > 0 ? (pos.currentAmount / totalInvested * 100) : 0;
+                      const fundData = funds.find((f) => f.ticker === pos.ticker);
                       const sharpe = fundData?.sharpeRatio;
-                      const isSelected = selectedFund === inv.ticker;
+                      const unrealPct = pos.currentAmount > 0 ? (pos.unrealizedGain / pos.currentAmount * 100) : 0;
+                      const isSelected = selectedFund === pos.ticker;
                       return (
-                      <tr
-                        key={inv.id}
-                        className={isSelected ? 'portfolio-row-selected' : ''}
-                        onClick={() => toggleFundSelect(inv.ticker)}
-                        style={{ cursor: 'pointer' }}
-                      >
+                        <tr
+                          key={pos.ticker}
+                          className={isSelected ? 'portfolio-row-selected' : ''}
+                          onClick={() => toggleFundSelect(pos.ticker)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <td title={pos.fund_name}>
+                            <span className="portfolio-ticker">{pos.ticker}</span>
+                          </td>
+                          <td>{formatCurrency(pos.currentAmount)}</td>
+                          <td>{weight.toFixed(1)}%</td>
+                          <td>{formatCurrency(pos.projectedCurrentValue)}</td>
+                          <td>
+                            <span className={pos.unrealizedGain >= 0 ? 'portfolio-return-positive' : 'portfolio-return-negative'}>
+                              {pos.unrealizedGain >= 0 ? '+' : ''}{formatCurrency(pos.unrealizedGain)}
+                            </span>
+                          </td>
+                          <td>
+                            <span className={unrealPct >= 0 ? 'portfolio-return-positive' : 'portfolio-return-negative'}>
+                              {unrealPct >= 0 ? '+' : ''}{unrealPct.toFixed(1)}%
+                            </span>
+                          </td>
+                          <td>{pos.beta != null ? pos.beta.toFixed(2) : <span className="portfolio-data-error">ERR</span>}</td>
+                          <td>{sharpe != null ? sharpe.toFixed(2) : <span className="portfolio-data-error">ERR</span>}</td>
+                          {['return1Y', 'return3Y', 'return5Y'].map((key) => {
+                            const hist = historicalData[pos.ticker];
+                            const val = hist ? hist[key] : undefined;
+                            return (
+                              <td key={key}>
+                                {val != null ? (
+                                  <span className={val >= 0 ? 'portfolio-return-positive' : 'portfolio-return-negative'}>
+                                    {val >= 0 ? '+' : ''}{(val * 100).toFixed(1)}%
+                                  </span>
+                                ) : (
+                                  <span style={{ color: '#94A3B8' }}>N/A</span>
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Transaction History */}
+            {transactions.length > 0 && (
+              <div className="portfolio-table-wrapper" style={{ marginTop: '1.25rem' }}>
+                <h3 className="portfolio-chart-title" style={{ padding: '1rem 1.25rem 0' }}>Transaction History</h3>
+                <table className="portfolio-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Type</th>
+                      <th>Fund</th>
+                      <th>Amount</th>
+                      <th>Exp. Return</th>
+                      <th>Beta</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...transactions].reverse().map((tx) => (
+                      <tr key={tx.id}>
                         <td>
-                          {new Date(inv.created_at).toLocaleDateString('en-US', {
+                          {new Date(tx.date).toLocaleDateString('en-US', {
                             month: 'short', day: 'numeric', year: 'numeric',
                           })}
                         </td>
-                        <td title={inv.fund_name || inv.ticker}>
-                          <span className="portfolio-ticker">{inv.ticker}</span>
-                        </td>
-                        <td>{formatCurrency(inv.amount)}</td>
-                        <td>{weight.toFixed(1)}%</td>
-                        <td>{inv.years} yr{inv.years !== 1 ? 's' : ''}</td>
-                        <td>{formatCurrency(inv.future_value)}</td>
                         <td>
-                          {inv.return_pct != null ? (
-                            <span className="portfolio-return-positive">
-                              +{Number(inv.return_pct).toFixed(1)}%
-                            </span>
-                          ) : (
-                            <span className="portfolio-data-error">ERR</span>
-                          )}
+                          <span className={tx.type === 'buy' ? 'portfolio-tx-buy' : 'portfolio-tx-sell'}>
+                            {tx.type.toUpperCase()}
+                          </span>
                         </td>
-                        <td>{inv.beta != null ? Number(inv.beta).toFixed(2) : <span className="portfolio-data-error">ERR</span>}</td>
-                        <td>{sharpe != null ? sharpe.toFixed(2) : <span className="portfolio-data-error">ERR</span>}</td>
-                        {['return1Y', 'return3Y', 'return5Y'].map((key) => {
-                          const hist = historicalData[inv.ticker];
-                          const val = hist ? hist[key] : undefined;
-                          return (
-                            <td key={key}>
-                              {val != null ? (
-                                <span className={val >= 0 ? 'portfolio-return-positive' : 'portfolio-return-negative'}>
-                                  {val >= 0 ? '+' : ''}{(val * 100).toFixed(1)}%
-                                </span>
-                              ) : (
-                                <span style={{ color: '#94A3B8' }}>N/A</span>
-                              )}
-                            </td>
-                          );
-                        })}
-                        <td>
-                          <button
-                            className="delete-btn"
-                            onClick={(e) => { e.stopPropagation(); handleDelete(inv.id); }}
-                            title="Delete investment"
-                          >
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M2 4h12M5.333 4V2.667a1.333 1.333 0 011.334-1.334h2.666a1.333 1.333 0 011.334 1.334V4m2 0v9.333a1.333 1.333 0 01-1.334 1.334H4.667a1.333 1.333 0 01-1.334-1.334V4h9.334z" />
-                            </svg>
-                          </button>
+                        <td title={tx.fund_name}>
+                          <span className="portfolio-ticker">{tx.ticker}</span>
                         </td>
+                        <td>{tx.type === 'sell' ? '-' : ''}{formatCurrency(tx.amount)}</td>
+                        <td>{(Number(tx.expected_return) * 100).toFixed(2)}%</td>
+                        <td>{Number(tx.beta).toFixed(2)}</td>
                       </tr>
-                      );
-                    })}
+                    ))}
                   </tbody>
                 </table>
               </div>
