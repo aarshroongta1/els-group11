@@ -1,0 +1,23 @@
+frontend/src/App.js
+  04d974efd450667c 12,29-30,186-190,193,195-199,203,210-224,247-260,282,284-335,385
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.5",
+  "base_commit_sha": "827e3dfff84e63c6b41d85d85019e72c4ca6330f",
+  "prompts": {
+    "04d974efd450667c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b37d5d71-9226-4839-99ef-c14f599b5fca",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Aarsh Roongta",
+      "messages": [],
+      "total_additions": 98,
+      "total_deletions": 20,
+      "accepted_lines": 98,
+      "overriden_lines": 0
+    }
+  }
+}
