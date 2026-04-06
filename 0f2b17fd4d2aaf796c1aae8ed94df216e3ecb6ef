@@ -1,0 +1,37 @@
+frontend/src/components/ResultsCard.js
+  04d974efd450667c 131
+backend/src/main/java/com/group11/mutualfund/service/MutualFundService.java
+  04d974efd450667c 7-8,18,30,110-113,235,252-306
+frontend/src/App.js
+  04d974efd450667c 72-77,85-86
+backend/src/main/java/com/group11/mutualfund/dto/PriceResponse.java
+  04d974efd450667c 1-25
+backend/src/main/java/com/group11/mutualfund/dto/PricePoint.java
+  04d974efd450667c 1-14
+frontend/src/components/PortfolioView.js
+  04d974efd450667c 29,84,103-108,117,127,132,145,217-218,234-237,239-251,253,255,257-258,260,262,264-271,273-281,283-286,289-292,374-376,386,397-400,402-405,407-409,415-417,425-426,429,431,433-437,440,451,456-457,459-466,471-472,474-478,503-547,625-626,630-637,641,649-650,656-664,674-675,817,825-826,829,846,893-895,897,900-901,903,906-907,911-918,921-928,932-939,941-948,953-960,965-972,975-982,986-992,1037-1038,1070,1073,1085,1087,1089-1093,1096-1100,1102,1138,1158-1166
+backend/src/main/java/com/group11/mutualfund/controller/HelloController.java
+  04d974efd450667c 1-7,15-17,19-20,38-47,87-110,112-114,116-118,120-130,151-261,264
+frontend/src/App.css
+  04d974efd450667c 1190,1192,1195-1200,1214-1216,1224,1623-1705
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.5",
+  "base_commit_sha": "0f2b17fd4d2aaf796c1aae8ed94df216e3ecb6ef",
+  "prompts": {
+    "04d974efd450667c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b37d5d71-9226-4839-99ef-c14f599b5fca",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Aarsh Roongta",
+      "messages": [],
+      "total_additions": 792,
+      "total_deletions": 419,
+      "accepted_lines": 693,
+      "overriden_lines": 0
+    }
+  }
+}
