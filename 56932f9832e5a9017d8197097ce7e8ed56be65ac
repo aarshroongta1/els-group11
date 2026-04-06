@@ -1,0 +1,23 @@
+frontend/src/components/PortfolioView.js
+  04d974efd450667c 222,259-267,269-280,282-284,286,288-289,291-305,307-318,321-324,327-331,334-353,357-359,361-362,368,378-379,388,397-408,416-417,420-428,458,614,1088-1089,1091,1095-1096,1098,1101,1116-1118
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.5",
+  "base_commit_sha": "56932f9832e5a9017d8197097ce7e8ed56be65ac",
+  "prompts": {
+    "04d974efd450667c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b37d5d71-9226-4839-99ef-c14f599b5fca",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Aarsh Roongta",
+      "messages": [],
+      "total_additions": 191,
+      "total_deletions": 115,
+      "accepted_lines": 137,
+      "overriden_lines": 0
+    }
+  }
+}
