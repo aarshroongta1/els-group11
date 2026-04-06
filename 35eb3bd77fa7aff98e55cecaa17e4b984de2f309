@@ -1,0 +1,43 @@
+frontend/src/components/PortfolioView.js
+  8a896317dbddc146 435,560-605,636-639,641-643,1182,1261
+frontend/src/components/ChatBot.js
+  8a896317dbddc146 8,15-19,267-269,407
+backend/src/main/java/com/group11/mutualfund/dto/ChatRequest.java
+  8a896317dbddc146 15-17,83-162
+frontend/src/App.css
+  8a896317dbddc146 100,157-267,1366
+backend/src/main/java/com/group11/mutualfund/model/UserInput.java
+  8a896317dbddc146 8,20,24
+.gitignore
+  8a896317dbddc146 19-21
+frontend/src/components/StressTest.js
+  8a896317dbddc146 34-38,117,189,192-205,261
+backend/src/main/java/com/group11/mutualfund/service/AIService.java
+  8a896317dbddc146 20-33,35-40,61,72,74,101,105-120,122-130,144,256-259,263,267-296
+frontend/src/App.js
+  8a896317dbddc146 1,31-35,213-215,219,226,235-236,372
+backend/src/main/java/com/group11/mutualfund/controller/HelloController.java
+  8a896317dbddc146 13,15,99,107,111,192,201,208-210
+backend/src/main/java/com/group11/mutualfund/service/MutualFundService.java
+  8a896317dbddc146 232,236
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.5",
+  "base_commit_sha": "35eb3bd77fa7aff98e55cecaa17e4b984de2f309",
+  "prompts": {
+    "8a896317dbddc146": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f4c087aa-b205-4bbb-959f-a74a2a095d6f",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Aarsh Roongta",
+      "messages": [],
+      "total_additions": 647,
+      "total_deletions": 421,
+      "accepted_lines": 427,
+      "overriden_lines": 0
+    }
+  }
+}
