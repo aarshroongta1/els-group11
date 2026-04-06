@@ -1436,7 +1436,7 @@ body {
 /* --- Portfolio Charts --- */
 .portfolio-charts-row {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: 1fr 2.5fr;
   gap: 1rem;
   margin-bottom: 1rem;
 }
@@ -1467,8 +1467,8 @@ body {
 }
 
 .allocation-chart {
-  width: 200px;
-  height: 200px;
+  width: 220px;
+  height: 220px;
 }
 
 .growth-projection-chart {
@@ -1701,6 +1701,22 @@ body {
   left: auto;
   right: 0.75rem;
   transform: none;
+}
+
+/* --- Allocation Legend (2 per row) --- */
+.allocation-legend {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem 1rem;
+  justify-items: start;
+}
+
+.allocation-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.82rem;
 }
 
 /* --- Transaction Buy/Sell Toggle --- */

@@ -4,8 +4,8 @@ import { supabase } from '../supabaseClient';
 const API_BASE_URL = "http://localhost:8080/api";
 
 const CHART_COLORS = [
-  '#003A70', '#2E86DE', '#54A0FF', '#0ABDE3', '#10AC84',
-  '#F368E0', '#EE5A24', '#F9CA24', '#6C5CE7', '#FDA7DF',
+  '#003A70', '#10AC84', '#E8712B', '#8B5CF6', '#E63946',
+  '#F4A623', '#0ABDE3', '#6C5CE7', '#2E86DE', '#EC4899',
 ];
 
 const MS_PER_YEAR = 365.25 * 24 * 60 * 60 * 1000;
@@ -19,14 +19,18 @@ const formatCurrency = (value) =>
   }).format(value);
 
 /* ─── Allocation Pie Chart ─── */
-function AllocationChart({ positions }) {
+function AllocationChart({ positions, priceData }) {
   const size = 200;
   const cx = size / 2;
   const cy = size / 2;
   const radius = 80;
 
   const entries = positions
-    .map((p) => [p.ticker, p.totalCostBasis])
+    .map((p) => {
+      const price = priceData[p.ticker];
+      const value = price != null ? p.totalUnits * price : p.totalCostBasis;
+      return [p.ticker, value];
+    })
     .sort((a, b) => b[1] - a[1]);
   const total = entries.reduce((s, [, v]) => s + v, 0);
 
@@ -66,9 +70,9 @@ function AllocationChart({ positions }) {
             {formatCurrency(total)}
           </text>
         </svg>
-        <div className="chart-legend">
+        <div className="allocation-legend">
           {slices.map((s) => (
-            <div key={s.ticker} className="chart-legend-item">
+            <div key={s.ticker} className="allocation-legend-item">
               <span className="chart-legend-dot" style={{ background: s.color }} />
               <span className="chart-legend-ticker">{s.ticker}</span>
               <span className="chart-legend-pct">{(s.fraction * 100).toFixed(1)}%</span>
@@ -999,7 +1003,7 @@ function PortfolioView({ user, onSignIn }) {
             {/* Charts */}
             {positions.length > 0 && (
               <div className="portfolio-charts-row">
-                <AllocationChart positions={positions} />
+                <AllocationChart positions={positions} priceData={priceData} />
                 <div className="portfolio-chart-card">
                   <div className="portfolio-chart-header">
                     <div className="portfolio-chart-toggle">
