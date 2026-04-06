@@ -1,6 +1,7 @@
 package com.group11.mutualfund.controller;
 import com.group11.mutualfund.dto.ChatRequest;
 import com.group11.mutualfund.dto.FundComparisonResponse;
+import com.group11.mutualfund.dto.PriceResponse;
 import com.group11.mutualfund.model.UserInput;
 import com.group11.mutualfund.model.RecommendationResponse;
 import com.group11.mutualfund.dto.FutureValueResponse;
@@ -145,6 +146,29 @@ public class HelloController {
     @GetMapping("/api/historical/{ticker}")
     public HistoricalPerformanceResponse getHistoricalPerformance(@PathVariable String ticker) {
         return mutualFundService.getHistoricalPerformance(ticker);
+    }
+
+    /**
+     * GET /api/price/{ticker}
+     * Get current NAV for a fund from Yahoo Finance
+     */
+    @GetMapping("/api/price/{ticker}")
+    public Map<String, Object> getCurrentPrice(@PathVariable String ticker) {
+        double price = mutualFundService.getCurrentPrice(ticker);
+        return Map.of("ticker", ticker, "currentPrice", price);
+    }
+
+    /**
+     * GET /api/price-history/{ticker}
+     * Get historical daily prices from Yahoo Finance
+     * @param range one of: 1mo, 3mo, 1y, 5y, max
+     */
+    @GetMapping("/api/price-history/{ticker}")
+    public PriceResponse getPriceHistory(
+            @PathVariable String ticker,
+            @RequestParam(defaultValue = "1y") String range
+    ) {
+        return mutualFundService.getPriceHistory(ticker, range);
     }
 
     @PostMapping("/api/chat")

@@ -82,7 +82,7 @@ function ResultsCard({ result, user, onSave, onNavigate }) {
   // Add defensive checks for undefined values
   const returnPct = result.returnPct != null ? result.returnPct : 0;
   const expectedReturn = result.expectedReturn != null ? result.expectedReturn : 0;
-  const beta = result.beta != null ? result.beta : 1.0;
+  const beta = result.beta;
   const riskFreeRate = result.riskFreeRate != null ? result.riskFreeRate : 0;
 
   async function handleSave() {
@@ -128,7 +128,7 @@ function ResultsCard({ result, user, onSave, onNavigate }) {
         </div>
         <div className="fund-stat">
           <span className="fund-stat-label">Beta</span>
-          <span className="fund-stat-value">{beta.toFixed(2)}</span>
+          <span className="fund-stat-value">{beta != null ? beta.toFixed(2) : <span style={{ color: '#DC2626' }}>ERR</span>}</span>
         </div>
         <div className="fund-stat">
           <span className="fund-stat-label">Risk-Free Rate</span>

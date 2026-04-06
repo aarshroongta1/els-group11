@@ -4,6 +4,8 @@ import com.group11.mutualfund.dto.BetaResponse;
 import com.group11.mutualfund.dto.FundComparisonResponse;
 import com.group11.mutualfund.dto.FutureValueResponse;
 import com.group11.mutualfund.dto.HistoricalPerformanceResponse;
+import com.group11.mutualfund.dto.PricePoint;
+import com.group11.mutualfund.dto.PriceResponse;
 import com.group11.mutualfund.model.MutualFund;
 import com.group11.mutualfund.model.RecommendationResponse;
 import com.group11.mutualfund.model.UserInput;
@@ -13,6 +15,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
@@ -24,6 +27,7 @@ public class MutualFundService {
 
     private final WebClient newtonClient;
     private final WebClient alphaVantageClient;
+    private final WebClient yahooClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private List<Map<String, String>> newsCache = null;
     private long newsCacheTimestamp = 0;
@@ -102,6 +106,10 @@ public class MutualFundService {
             .build();
         this.alphaVantageClient = WebClient.builder()
             .baseUrl("https://www.alphavantage.co")
+            .build();
+        this.yahooClient = WebClient.builder()
+            .baseUrl("https://query1.finance.yahoo.com")
+            .defaultHeader("User-Agent", "Mozilla/5.0")
             .build();
     }
 
@@ -224,7 +232,7 @@ public class MutualFundService {
      */
     public double getBeta(String ticker) {
         String url = String.format(
-            "/stock-beta/?ticker=%s&index=^GSPC&interval=1mo&observations=12",
+            "/stock-beta/?ticker=%s&index=^GSPC&interval=1d&observations=100",
             ticker
         );
 
@@ -238,6 +246,63 @@ public class MutualFundService {
             throw new RuntimeException("Newton API returned no beta data for " + ticker);
         }
         return response.getBeta();
+    }
+
+    /**
+     * Get current price (NAV) for a fund from Yahoo Finance
+     */
+    public double getCurrentPrice(String ticker) {
+        String url = String.format("/v8/finance/chart/%s?range=1d&interval=1d", ticker);
+
+        String json = yahooClient.get()
+            .uri(url)
+            .retrieve()
+            .bodyToMono(String.class)
+            .block();
+
+        try {
+            JsonNode root = objectMapper.readTree(json);
+            JsonNode meta = root.path("chart").path("result").get(0).path("meta");
+            return meta.path("regularMarketPrice").asDouble();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to fetch price for " + ticker, e);
+        }
+    }
+
+    /**
+     * Get price history for a fund from Yahoo Finance
+     * @param range one of: 1mo, 3mo, 1y, 5y, max
+     */
+    public PriceResponse getPriceHistory(String ticker, String range) {
+        String url = String.format("/v8/finance/chart/%s?range=%s&interval=1d", ticker, range);
+
+        String json = yahooClient.get()
+            .uri(url)
+            .retrieve()
+            .bodyToMono(String.class)
+            .block();
+
+        try {
+            JsonNode root = objectMapper.readTree(json);
+            JsonNode result = root.path("chart").path("result").get(0);
+            double currentPrice = result.path("meta").path("regularMarketPrice").asDouble();
+
+            JsonNode timestamps = result.path("timestamp");
+            JsonNode closes = result.path("indicators").path("adjclose").get(0).path("adjclose");
+
+            List<PricePoint> history = new ArrayList<>();
+            for (int i = 0; i < timestamps.size(); i++) {
+                long ts = timestamps.get(i).asLong();
+                double price = closes.get(i).asDouble();
+                if (price > 0) {
+                    history.add(new PricePoint(ts, price));
+                }
+            }
+
+            return new PriceResponse(ticker, currentPrice, history);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to fetch price history for " + ticker, e);
+        }
     }
 
     /**

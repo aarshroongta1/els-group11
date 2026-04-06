@@ -26,7 +26,7 @@ function AllocationChart({ positions }) {
   const radius = 80;
 
   const entries = positions
-    .map((p) => [p.ticker, p.currentAmount])
+    .map((p) => [p.ticker, p.totalCostBasis])
     .sort((a, b) => b[1] - a[1]);
   const total = entries.reduce((s, [, v]) => s + v, 0);
 
@@ -81,7 +81,7 @@ function AllocationChart({ positions }) {
 }
 
 /* ─── Growth Projection Chart (5-year forward) ─── */
-function GrowthProjectionChart({ positions, funds, selectedFund }) {
+function GrowthProjectionChart({ positions, funds, selectedFund, priceData }) {
   const width = 500;
   const height = 220;
   const padL = 55;
@@ -99,7 +99,13 @@ function GrowthProjectionChart({ positions, funds, selectedFund }) {
 
   const now = new Date();
   const projectionYears = 5;
-  const totalInvested = positions.reduce((s, p) => s + p.currentAmount, 0);
+
+  // Start from real current value if prices available, else cost basis
+  const getStartValue = (pos) => {
+    const price = priceData[pos.ticker];
+    return price != null ? pos.totalUnits * price : pos.totalCostBasis;
+  };
+  const totalStartValue = positions.reduce((s, p) => s + getStartValue(p), 0);
 
   // Build aggregate portfolio curve (5 years forward from today)
   const aggregatePoints = [];
@@ -108,7 +114,7 @@ function GrowthProjectionChart({ positions, funds, selectedFund }) {
     date.setFullYear(date.getFullYear() + y);
     let totalValue = 0;
     positions.forEach((pos) => {
-      totalValue += pos.currentAmount * Math.exp(pos.expectedReturn * y);
+      totalValue += getStartValue(pos) * Math.exp(pos.expectedReturn * y);
     });
     aggregatePoints.push({ date, timestamp: date.getTime(), value: totalValue });
   }
@@ -118,11 +124,12 @@ function GrowthProjectionChart({ positions, funds, selectedFund }) {
   if (selectedFund) {
     const pos = positions.find((p) => p.ticker === selectedFund);
     if (pos) {
+      const startVal = getStartValue(pos);
       const points = [];
       for (let y = 0; y <= projectionYears; y++) {
         const date = new Date(now);
         date.setFullYear(date.getFullYear() + y);
-        points.push({ date, timestamp: date.getTime(), value: pos.currentAmount * Math.exp(pos.expectedReturn * y) });
+        points.push({ date, timestamp: date.getTime(), value: startVal * Math.exp(pos.expectedReturn * y) });
       }
       fundCurve = { ticker: selectedFund, points, color: '#2E86DE' };
     }
@@ -135,7 +142,7 @@ function GrowthProjectionChart({ positions, funds, selectedFund }) {
   for (let y = 0; y <= projectionYears; y++) {
     const date = new Date(now);
     date.setFullYear(date.getFullYear() + y);
-    benchmarkPoints.push({ date, timestamp: date.getTime(), value: totalInvested * Math.exp(spyReturn * y) });
+    benchmarkPoints.push({ date, timestamp: date.getTime(), value: totalStartValue * Math.exp(spyReturn * y) });
   }
 
   const allPoints = [...aggregatePoints, ...benchmarkPoints, ...(fundCurve ? fundCurve.points : [])];
@@ -207,8 +214,8 @@ function GrowthProjectionChart({ positions, funds, selectedFund }) {
   );
 }
 
-/* ─── Historical "Since Inception" Chart ─── */
-function HistoricalValueChart({ transactions, period }) {
+/* ─── Historical "Since Inception" Chart (real prices) ─── */
+function HistoricalValueChart({ transactions, priceHistory }) {
   const width = 500;
   const height = 220;
   const padL = 55;
@@ -224,61 +231,65 @@ function HistoricalValueChart({ transactions, period }) {
 
   if (transactions.length === 0) return null;
 
-  const now = new Date();
-  const firstDate = new Date(transactions[0].date);
+  // Get all tickers that have price history
+  const tickers = [...new Set(transactions.map((tx) => tx.ticker))];
+  const allHaveHistory = tickers.every((t) => priceHistory[t] && priceHistory[t].length > 0);
+  if (!allHaveHistory) return <p style={{ color: '#6B7C93', fontSize: '0.85rem', textAlign: 'center', padding: '2rem' }}>Loading price data...</p>;
 
-  // Determine start date based on period filter
-  let startDate;
-  if (period === '1M') {
-    startDate = new Date(now); startDate.setDate(startDate.getDate() - 30);
-  } else if (period === '3M') {
-    startDate = new Date(now); startDate.setMonth(startDate.getMonth() - 3);
-  } else if (period === '1Y') {
-    startDate = new Date(now); startDate.setFullYear(startDate.getFullYear() - 1);
-  } else {
-    startDate = firstDate;
-  }
-  if (startDate < firstDate) startDate = firstDate;
+  // Build a unified timeline from all price histories
+  const allTimestamps = new Set();
+  tickers.forEach((ticker) => {
+    priceHistory[ticker].forEach((p) => allTimestamps.add(p.timestamp));
+  });
+  const sortedTimestamps = [...allTimestamps].sort((a, b) => a - b);
 
-  const startMs = startDate.getTime();
-  const endMs = now.getTime();
-  const span = endMs - startMs;
-  if (span <= 0) return null;
+  // Build price lookup: ticker -> timestamp -> price
+  const priceLookup = {};
+  tickers.forEach((ticker) => {
+    priceLookup[ticker] = {};
+    priceHistory[ticker].forEach((p) => {
+      priceLookup[ticker][p.timestamp] = p.price;
+    });
+  });
 
-  // Generate ~80 evaluation points
-  const numPoints = 80;
+  // For each timestamp, compute portfolio value
   const dataPoints = [];
+  sortedTimestamps.forEach((ts) => {
+    const tsMs = ts * 1000;
 
-  for (let i = 0; i <= numPoints; i++) {
-    const evalMs = startMs + (i / numPoints) * span;
-    const evalDate = new Date(evalMs);
-
-    // Compute portfolio value at this date
-    // Group transactions by ticker up to this date
-    const byTicker = {};
-    transactions.forEach((tx) => {
-      if (new Date(tx.date).getTime() > evalMs) return;
-      if (!byTicker[tx.ticker]) byTicker[tx.ticker] = { buys: [], sells: [] };
-      byTicker[tx.ticker][tx.type === 'buy' ? 'buys' : 'sells'].push(tx);
-    });
-
+    // Compute units held per ticker at this date
     let portfolioValue = 0;
-    Object.entries(byTicker).forEach(([, { buys, sells }]) => {
-      const totalBought = buys.reduce((s, tx) => s + Number(tx.amount), 0);
-      const totalSold = sells.reduce((s, tx) => s + Number(tx.amount), 0);
-      const netInvested = totalBought - totalSold;
-      if (netInvested <= 0) return;
+    let hasData = false;
 
-      // Weighted average buy date and expected return
-      const weightedDateMs = buys.reduce((s, tx) => s + new Date(tx.date).getTime() * Number(tx.amount), 0) / totalBought;
-      const weightedReturn = buys.reduce((s, tx) => s + Number(tx.expected_return) * Number(tx.amount), 0) / totalBought;
+    tickers.forEach((ticker) => {
+      // Get closest price <= this timestamp
+      const prices = priceHistory[ticker];
+      let price = null;
+      for (let i = prices.length - 1; i >= 0; i--) {
+        if (prices[i].timestamp <= ts) { price = prices[i].price; break; }
+      }
+      if (price == null) return;
 
-      const yearsElapsed = (evalMs - weightedDateMs) / MS_PER_YEAR;
-      portfolioValue += netInvested * Math.exp(weightedReturn * Math.max(yearsElapsed, 0));
+      // Compute units held at this date
+      let units = 0;
+      transactions.forEach((tx) => {
+        if (tx.ticker !== ticker) return;
+        if (new Date(tx.date).getTime() / 1000 > ts) return;
+        const txUnits = Number(tx.units || 0);
+        if (tx.type === 'buy') units += txUnits;
+        else units -= txUnits;
+      });
+
+      if (units > 0) {
+        portfolioValue += units * price;
+        hasData = true;
+      }
     });
 
-    dataPoints.push({ date: evalDate, timestamp: evalMs, value: portfolioValue });
-  }
+    if (hasData) {
+      dataPoints.push({ date: new Date(tsMs), timestamp: tsMs, value: portfolioValue });
+    }
+  });
 
   if (dataPoints.length === 0) return null;
 
@@ -360,6 +371,9 @@ function PortfolioView({ user, onSignIn }) {
 
   // Chart/display state
   const [historicalData, setHistoricalData] = useState({});
+  const [betaData, setBetaData] = useState({});
+  const [priceData, setPriceData] = useState({});
+  const [priceHistory, setPriceHistory] = useState({});
   const [selectedFund, setSelectedFund] = useState(null);
   const [chartMode, setChartMode] = useState('projected');
   const [historyPeriod, setHistoryPeriod] = useState('ALL');
@@ -369,7 +383,7 @@ function PortfolioView({ user, onSignIn }) {
     setSelectedFund((prev) => (prev === ticker ? null : ticker));
   };
 
-  /* ─── Derive positions from transactions ─── */
+  /* ─── Derive positions from transactions (unit-based) ─── */
   const positions = useMemo(() => {
     const byTicker = {};
     transactions.forEach((tx) => {
@@ -380,45 +394,50 @@ function PortfolioView({ user, onSignIn }) {
 
     const result = [];
     Object.entries(byTicker).forEach(([ticker, { buys, sells, fund_name }]) => {
-      const totalBought = buys.reduce((s, tx) => s + Number(tx.amount), 0);
-      const totalSold = sells.reduce((s, tx) => s + Number(tx.amount), 0);
-      const currentAmount = totalBought - totalSold;
-      if (currentAmount <= 0) return;
+      const totalBuyUnits = buys.reduce((s, tx) => s + Number(tx.units || 0), 0);
+      const totalSellUnits = sells.reduce((s, tx) => s + Number(tx.units || 0), 0);
+      const totalUnits = totalBuyUnits - totalSellUnits;
+      if (totalUnits <= 0) return;
 
-      const weightedReturn = buys.reduce((s, tx) => s + Number(tx.expected_return) * Number(tx.amount), 0) / totalBought;
-      const weightedBeta = buys.reduce((s, tx) => s + Number(tx.beta) * Number(tx.amount), 0) / totalBought;
+      const totalCostBasis = buys.reduce((s, tx) => s + Number(tx.amount), 0)
+        - sells.reduce((s, tx) => s + Number(tx.amount), 0);
+      const avgCostPerUnit = totalUnits > 0 ? totalCostBasis / totalUnits : 0;
+
+      const totalBought = buys.reduce((s, tx) => s + Number(tx.amount), 0);
+      const weightedReturn = totalBought > 0
+        ? buys.reduce((s, tx) => s + Number(tx.expected_return || 0) * Number(tx.amount), 0) / totalBought
+        : 0;
       const earliestBuy = new Date(Math.min(...buys.map((tx) => new Date(tx.date).getTime())));
 
       result.push({
         ticker,
         fund_name,
-        currentAmount,
-        totalBought,
-        totalSold,
+        totalUnits,
+        totalCostBasis,
+        avgCostPerUnit,
         expectedReturn: weightedReturn,
-        beta: weightedBeta,
         earliestBuy,
       });
     });
     return result;
   }, [transactions]);
 
-  /* ─── Derive gains ─── */
-  const { totalUnrealizedGain, totalRealizedGain, positionsWithGains } = useMemo(() => {
-    const now = new Date();
+  /* ─── Derive gains (real prices) ─── */
+  const { totalUnrealizedGain, totalRealizedGain, positionsWithGains, realizedGainByTx } = useMemo(() => {
     let totalUnrealizedGain = 0;
     let totalRealizedGain = 0;
+    const realizedGainByTx = {};
 
-    // Unrealized gains
+    // Unrealized gains — using live prices
     const positionsWithGains = positions.map((pos) => {
-      const yearsHeld = (now.getTime() - pos.earliestBuy.getTime()) / MS_PER_YEAR;
-      const projectedCurrentValue = pos.currentAmount * Math.exp(pos.expectedReturn * yearsHeld);
-      const unrealizedGain = projectedCurrentValue - pos.currentAmount;
-      totalUnrealizedGain += unrealizedGain;
-      return { ...pos, projectedCurrentValue, unrealizedGain, yearsHeld };
+      const currentPrice = priceData[pos.ticker];
+      const currentValue = currentPrice != null ? pos.totalUnits * currentPrice : null;
+      const unrealizedGain = currentValue != null ? currentValue - pos.totalCostBasis : null;
+      if (unrealizedGain != null) totalUnrealizedGain += unrealizedGain;
+      return { ...pos, currentValue, unrealizedGain };
     });
 
-    // Realized gains
+    // Realized gains — using actual price at sell time
     const byTicker = {};
     transactions.forEach((tx) => {
       if (!byTicker[tx.ticker]) byTicker[tx.ticker] = { buys: [], sells: [] };
@@ -429,36 +448,34 @@ function PortfolioView({ user, onSignIn }) {
       if (sells.length === 0) return;
 
       const allTx = [...buys, ...sells].sort((a, b) => new Date(a.date) - new Date(b.date));
+      let totalUnits = 0;
       let costBasisPool = 0;
-      let positionSize = 0;
 
       allTx.forEach((tx) => {
-        const amt = Number(tx.amount);
         if (tx.type === 'buy') {
-          costBasisPool += amt;
-          positionSize += amt;
+          totalUnits += Number(tx.units || 0);
+          costBasisPool += Number(tx.amount);
         } else {
-          const proportionalCost = positionSize > 0 ? (amt / positionSize) * costBasisPool : amt;
-          const buyDates = buys.filter((b) => new Date(b.date) <= new Date(tx.date));
-          if (buyDates.length > 0) {
-            const earliestBuyMs = Math.min(...buyDates.map((b) => new Date(b.date).getTime()));
-            const weightedReturn = buyDates.reduce((s, b) => s + Number(b.expected_return) * Number(b.amount), 0) /
-              buyDates.reduce((s, b) => s + Number(b.amount), 0);
-            const yearsHeld = (new Date(tx.date).getTime() - earliestBuyMs) / MS_PER_YEAR;
-            const projectedValueAtSell = proportionalCost * Math.exp(weightedReturn * Math.max(yearsHeld, 0));
-            totalRealizedGain += projectedValueAtSell - proportionalCost;
-          }
-          costBasisPool -= proportionalCost;
-          positionSize -= amt;
+          const sellUnits = Number(tx.units || 0);
+          const sellPrice = Number(tx.price_per_unit || 0);
+          const avgCost = totalUnits > 0 ? costBasisPool / totalUnits : 0;
+          const gain = (sellPrice - avgCost) * sellUnits;
+          realizedGainByTx[tx.id] = gain;
+          totalRealizedGain += gain;
+          costBasisPool -= avgCost * sellUnits;
+          totalUnits -= sellUnits;
         }
       });
     });
 
-    return { totalUnrealizedGain, totalRealizedGain, positionsWithGains };
-  }, [positions, transactions]);
+    return { totalUnrealizedGain, totalRealizedGain, positionsWithGains, realizedGainByTx };
+  }, [positions, transactions, priceData]);
 
-  const totalInvested = positions.reduce((s, p) => s + p.currentAmount, 0);
-  const totalCurrentValue = positionsWithGains.reduce((s, p) => s + p.projectedCurrentValue, 0);
+  const totalInvested = transactions.filter((tx) => tx.type === 'buy').reduce((s, tx) => s + Number(tx.amount), 0);
+  const totalWithdrawn = transactions.filter((tx) => tx.type === 'sell').reduce((s, tx) => s + Number(tx.amount), 0);
+  const totalCurrentValue = positionsWithGains.reduce((s, p) => s + (p.currentValue || p.totalCostBasis), 0);
+  const totalReturn = totalUnrealizedGain + totalRealizedGain;
+  const openCostBasis = positions.reduce((s, p) => s + p.totalCostBasis, 0);
 
   /* ─── Data fetching ─── */
   useEffect(() => {
@@ -482,6 +499,51 @@ function PortfolioView({ user, onSignIn }) {
         .catch(() => {});
     });
   }, [positions]);
+
+  // Fetch live beta for each position ticker
+  useEffect(() => {
+    if (positions.length === 0) return;
+    const tickers = [...new Set(positions.map((p) => p.ticker))];
+    tickers.forEach((ticker) => {
+      if (betaData[ticker] != null) return;
+      fetch(`${API_BASE_URL}/beta/${ticker}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setBetaData((prev) => ({ ...prev, [ticker]: data }));
+        })
+        .catch(() => {});
+    });
+  }, [positions]);
+
+  // Fetch live prices for each position ticker
+  useEffect(() => {
+    if (positions.length === 0) return;
+    const tickers = [...new Set(positions.map((p) => p.ticker))];
+    tickers.forEach((ticker) => {
+      fetch(`${API_BASE_URL}/price/${ticker}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setPriceData((prev) => ({ ...prev, [ticker]: data.currentPrice }));
+        })
+        .catch(() => {});
+    });
+  }, [positions]);
+
+  // Fetch price history for historical chart
+  useEffect(() => {
+    if (positions.length === 0 || chartMode !== 'since-inception') return;
+    const rangeMap = { '1M': '1mo', '3M': '3mo', '1Y': '1y', 'ALL': 'max' };
+    const range = rangeMap[historyPeriod] || 'max';
+    const tickers = [...new Set(positions.map((p) => p.ticker))];
+    tickers.forEach((ticker) => {
+      fetch(`${API_BASE_URL}/price-history/${ticker}?range=${range}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setPriceHistory((prev) => ({ ...prev, [ticker]: data.history }));
+        })
+        .catch(() => {});
+    });
+  }, [positions, chartMode, historyPeriod]);
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/funds`)
@@ -560,11 +622,23 @@ function PortfolioView({ user, onSignIn }) {
     try {
       if (txType === 'sell') {
         const position = positions.find((p) => p.ticker === selectedTicker);
-        if (!position || parseFloat(amount) > position.currentAmount) {
-          setAddError('Sell amount exceeds current position.');
+        if (!position) {
+          setAddError('No open position for this fund.');
           setAdding(false);
           return;
         }
+        // Fetch current price
+        const priceRes = await fetch(`${API_BASE_URL}/price/${selectedTicker}`);
+        const priceJson = await priceRes.json();
+        const currentPrice = priceJson.currentPrice;
+        const unitsToSell = parseFloat(amount) / currentPrice;
+
+        if (unitsToSell > position.totalUnits) {
+          setAddError(`Sell amount exceeds current position (${formatCurrency(position.totalUnits * currentPrice)} available).`);
+          setAdding(false);
+          return;
+        }
+
         const { error: insertError } = await supabase.from('transactions').insert({
           user_id: user.id,
           type: 'sell',
@@ -572,16 +646,22 @@ function PortfolioView({ user, onSignIn }) {
           ticker: selectedTicker,
           fund_name: position.fund_name,
           amount: parseFloat(amount),
+          price_per_unit: currentPrice,
+          units: unitsToSell,
           expected_return: position.expectedReturn,
-          beta: position.beta,
         });
         if (insertError) throw insertError;
       } else {
         const years = getYears();
-        const response = await fetch(
-          `${API_BASE_URL}/calculate?ticker=${selectedTicker}&amount=${amount}&years=${years}`
-        );
-        const data = await response.json();
+        // Fetch current price and CAPM data in parallel
+        const [priceRes, calcRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/price/${selectedTicker}`),
+          fetch(`${API_BASE_URL}/calculate?ticker=${selectedTicker}&amount=${amount}&years=${years}`),
+        ]);
+        const priceJson = await priceRes.json();
+        const data = await calcRes.json();
+        const currentPrice = priceJson.currentPrice;
+        const units = data.principal / currentPrice;
         const fund = funds.find((f) => f.ticker === selectedTicker);
 
         const { error: insertError } = await supabase.from('transactions').insert({
@@ -591,8 +671,9 @@ function PortfolioView({ user, onSignIn }) {
           ticker: selectedTicker,
           fund_name: fund?.name || selectedTicker,
           amount: data.principal,
+          price_per_unit: currentPrice,
+          units: units,
           expected_return: data.expectedReturn,
-          beta: data.beta,
         });
         if (insertError) throw insertError;
       }
@@ -733,7 +814,7 @@ function PortfolioView({ user, onSignIn }) {
               <input
                 type="number"
                 className="input input-with-prefix"
-                placeholder={txType === 'sell' ? 'Amount to sell' : '10,000'}
+                placeholder={txType === 'sell' ? 'Amount to sell' : 'Enter investment amount'}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 min="0"
@@ -741,9 +822,11 @@ function PortfolioView({ user, onSignIn }) {
             </div>
             {txType === 'sell' && selectedTicker && (() => {
               const pos = positions.find((p) => p.ticker === selectedTicker);
+              const price = priceData[selectedTicker];
+              const available = pos && price ? pos.totalUnits * price : null;
               return pos ? (
                 <span style={{ fontSize: '0.72rem', color: '#6B7C93', marginTop: '0.25rem', display: 'block' }}>
-                  Available: {formatCurrency(pos.currentAmount)}
+                  Available: {available != null ? formatCurrency(available) : 'Loading...'}
                 </span>
               ) : null;
             })()}
@@ -760,7 +843,7 @@ function PortfolioView({ user, onSignIn }) {
                   <input
                     type="number"
                     className="input"
-                    placeholder="5"
+                    placeholder="Duration"
                     value={duration}
                     onChange={(e) => setDuration(e.target.value)}
                     min="0"
@@ -807,57 +890,106 @@ function PortfolioView({ user, onSignIn }) {
             {/* Summary Bar */}
             {positions.length > 0 && (() => {
               const missingFundData = positions.some((p) => !funds.find((f) => f.ticker === p.ticker));
-              const weightedBeta = totalInvested > 0
-                ? positions.reduce((sum, p) => sum + p.beta * p.currentAmount, 0) / totalInvested
+              const allBetasLoaded = positions.every((p) => betaData[p.ticker] != null);
+              const weightedBeta = openCostBasis > 0 && allBetasLoaded
+                ? positions.reduce((sum, p) => sum + (betaData[p.ticker] || 0) * p.totalCostBasis, 0) / openCostBasis
                 : null;
-              const weightedSharpe = totalInvested > 0 && !missingFundData
+              const weightedSharpe = openCostBasis > 0 && !missingFundData
                 ? positions.reduce((sum, p) => {
                     const fundData = funds.find((f) => f.ticker === p.ticker);
-                    return sum + (fundData?.sharpeRatio || 0) * p.currentAmount;
-                  }, 0) / totalInvested
+                    return sum + (fundData?.sharpeRatio || 0) * p.totalCostBasis;
+                  }, 0) / openCostBasis
                 : null;
-              const portfolioVolatility = totalInvested > 0 && !missingFundData
+              const portfolioVolatility = openCostBasis > 0 && !missingFundData
                 ? positions.reduce((sum, p) => {
                     const fundData = funds.find((f) => f.ticker === p.ticker);
-                    return sum + (fundData?.standardDeviation || 0) * p.currentAmount;
-                  }, 0) / totalInvested
+                    return sum + (fundData?.standardDeviation || 0) * p.totalCostBasis;
+                  }, 0) / openCostBasis
                 : null;
               return (
                 <div className="portfolio-summary-bar">
-                  <div className="summary-stat">
-                    <span className="summary-stat-label">Invested</span>
+                  <div className="summary-stat summary-stat--wide">
+                    <span className="summary-stat-label">
+                      Total Invested
+                      <span className="summary-stat-info">
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#003A70" strokeWidth="1.5"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.5V11" strokeLinecap="round"/><circle cx="8" cy="5.5" r="0.5" fill="#003A70" stroke="none"/></svg>
+                        <span className="summary-stat-tooltip">Total money you've put in across all buy transactions.</span>
+                      </span>
+                    </span>
                     <span className="summary-stat-value">{formatCurrency(totalInvested)}</span>
                   </div>
-                  <div className="summary-stat">
-                    <span className="summary-stat-label">Current Value</span>
+                  <div className="summary-stat summary-stat--wide">
+                    <span className="summary-stat-label">
+                      Current Value
+                      <span className="summary-stat-info">
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#003A70" strokeWidth="1.5"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.5V11" strokeLinecap="round"/><circle cx="8" cy="5.5" r="0.5" fill="#003A70" stroke="none"/></svg>
+                        <span className="summary-stat-tooltip">What your open positions are worth today, based on projected growth since purchase.</span>
+                      </span>
+                    </span>
                     <span className="summary-stat-value">{formatCurrency(totalCurrentValue)}</span>
                   </div>
                   <div className="summary-stat">
-                    <span className="summary-stat-label">Unrealized</span>
+                    <span className="summary-stat-label">
+                      Withdrawn
+                      <span className="summary-stat-info">
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#003A70" strokeWidth="1.5"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.5V11" strokeLinecap="round"/><circle cx="8" cy="5.5" r="0.5" fill="#003A70" stroke="none"/></svg>
+                        <span className="summary-stat-tooltip">Total money you've taken out by selling positions.</span>
+                      </span>
+                    </span>
+                    <span className="summary-stat-value">{formatCurrency(totalWithdrawn)}</span>
+                  </div>
+                  <div className="summary-stat summary-stat--wide">
+                    <span className="summary-stat-label">
+                      Unrealized Gain
+                      <span className="summary-stat-info">
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#003A70" strokeWidth="1.5"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.5V11" strokeLinecap="round"/><circle cx="8" cy="5.5" r="0.5" fill="#003A70" stroke="none"/></svg>
+                        <span className="summary-stat-tooltip">Gain or loss on positions you still hold. This is not locked in until you sell.</span>
+                      </span>
+                    </span>
                     <span className={`summary-stat-value ${totalUnrealizedGain >= 0 ? 'summary-stat-positive' : 'summary-stat-negative'}`}>
                       {totalUnrealizedGain >= 0 ? '+' : ''}{formatCurrency(totalUnrealizedGain)}
                     </span>
                   </div>
-                  <div className="summary-stat">
-                    <span className="summary-stat-label">Realized</span>
+                  <div className="summary-stat summary-stat--wide">
+                    <span className="summary-stat-label">
+                      Realized Gain
+                      <span className="summary-stat-info">
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#003A70" strokeWidth="1.5"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.5V11" strokeLinecap="round"/><circle cx="8" cy="5.5" r="0.5" fill="#003A70" stroke="none"/></svg>
+                        <span className="summary-stat-tooltip">Gain or loss from positions you've sold, based on growth between buy and sell dates.</span>
+                      </span>
+                    </span>
                     <span className={`summary-stat-value ${totalRealizedGain >= 0 ? 'summary-stat-positive' : 'summary-stat-negative'}`}>
                       {totalRealizedGain >= 0 ? '+' : ''}{formatCurrency(totalRealizedGain)}
                     </span>
                   </div>
-                  <div className="summary-stat">
-                    <span className="summary-stat-label">Holdings</span>
-                    <span className="summary-stat-value">{positions.length}</span>
-                  </div>
-                  <div className="summary-stat">
-                    <span className="summary-stat-label">Beta</span>
+                  <div className="summary-stat summary-stat--narrow">
+                    <span className="summary-stat-label">
+                      Beta
+                      <span className="summary-stat-info">
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#003A70" strokeWidth="1.5"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.5V11" strokeLinecap="round"/><circle cx="8" cy="5.5" r="0.5" fill="#003A70" stroke="none"/></svg>
+                        <span className="summary-stat-tooltip summary-stat-tooltip--right">How closely your portfolio moves with the S&amp;P 500. A beta of 1.0 means it moves in line with the market.</span>
+                      </span>
+                    </span>
                     <span className="summary-stat-value">{weightedBeta != null ? weightedBeta.toFixed(2) : <span className="summary-stat-error">ERR</span>}</span>
                   </div>
-                  <div className="summary-stat">
-                    <span className="summary-stat-label">Sharpe</span>
+                  <div className="summary-stat summary-stat--narrow">
+                    <span className="summary-stat-label">
+                      Sharpe
+                      <span className="summary-stat-info">
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#003A70" strokeWidth="1.5"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.5V11" strokeLinecap="round"/><circle cx="8" cy="5.5" r="0.5" fill="#003A70" stroke="none"/></svg>
+                        <span className="summary-stat-tooltip summary-stat-tooltip--right">How much return your portfolio earns for the risk it takes. Higher is better.</span>
+                      </span>
+                    </span>
                     <span className="summary-stat-value">{weightedSharpe != null ? weightedSharpe.toFixed(2) : <span className="summary-stat-error">ERR</span>}</span>
                   </div>
                   <div className="summary-stat">
-                    <span className="summary-stat-label">Volatility</span>
+                    <span className="summary-stat-label">
+                      Volatility
+                      <span className="summary-stat-info">
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#003A70" strokeWidth="1.5"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.5V11" strokeLinecap="round"/><circle cx="8" cy="5.5" r="0.5" fill="#003A70" stroke="none"/></svg>
+                        <span className="summary-stat-tooltip summary-stat-tooltip--right">How much your portfolio's value is expected to swing up or down. Higher means more risk.</span>
+                      </span>
+                    </span>
                     <span className="summary-stat-value">{portfolioVolatility != null ? `${(portfolioVolatility * 100).toFixed(1)}%` : <span className="summary-stat-error">ERR</span>}</span>
                   </div>
                 </div>
@@ -902,8 +1034,8 @@ function PortfolioView({ user, onSignIn }) {
                     )}
                   </div>
                   {chartMode === 'projected'
-                    ? <GrowthProjectionChart positions={positions} funds={funds} selectedFund={selectedFund} />
-                    : <HistoricalValueChart transactions={transactions} period={historyPeriod} />
+                    ? <GrowthProjectionChart positions={positions} funds={funds} selectedFund={selectedFund} priceData={priceData} />
+                    : <HistoricalValueChart transactions={transactions} priceHistory={priceHistory} />
                   }
                 </div>
               </div>
@@ -935,10 +1067,10 @@ function PortfolioView({ user, onSignIn }) {
                   </thead>
                   <tbody>
                     {positionsWithGains.map((pos) => {
-                      const weight = totalInvested > 0 ? (pos.currentAmount / totalInvested * 100) : 0;
+                      const weight = openCostBasis > 0 ? (pos.totalCostBasis / openCostBasis * 100) : 0;
                       const fundData = funds.find((f) => f.ticker === pos.ticker);
                       const sharpe = fundData?.sharpeRatio;
-                      const unrealPct = pos.currentAmount > 0 ? (pos.unrealizedGain / pos.currentAmount * 100) : 0;
+                      const unrealPct = pos.totalCostBasis > 0 && pos.unrealizedGain != null ? (pos.unrealizedGain / pos.totalCostBasis * 100) : null;
                       const isSelected = selectedFund === pos.ticker;
                       return (
                         <tr
@@ -950,20 +1082,24 @@ function PortfolioView({ user, onSignIn }) {
                           <td title={pos.fund_name}>
                             <span className="portfolio-ticker">{pos.ticker}</span>
                           </td>
-                          <td>{formatCurrency(pos.currentAmount)}</td>
+                          <td>{formatCurrency(pos.totalCostBasis)}</td>
                           <td>{weight.toFixed(1)}%</td>
-                          <td>{formatCurrency(pos.projectedCurrentValue)}</td>
+                          <td>{pos.currentValue != null ? formatCurrency(pos.currentValue) : '...'}</td>
                           <td>
-                            <span className={pos.unrealizedGain >= 0 ? 'portfolio-return-positive' : 'portfolio-return-negative'}>
-                              {pos.unrealizedGain >= 0 ? '+' : ''}{formatCurrency(pos.unrealizedGain)}
-                            </span>
+                            {pos.unrealizedGain != null ? (
+                              <span className={pos.unrealizedGain >= 0 ? 'portfolio-return-positive' : 'portfolio-return-negative'}>
+                                {pos.unrealizedGain >= 0 ? '+' : ''}{formatCurrency(pos.unrealizedGain)}
+                              </span>
+                            ) : '...'}
                           </td>
                           <td>
-                            <span className={unrealPct >= 0 ? 'portfolio-return-positive' : 'portfolio-return-negative'}>
-                              {unrealPct >= 0 ? '+' : ''}{unrealPct.toFixed(1)}%
-                            </span>
+                            {unrealPct != null ? (
+                              <span className={unrealPct >= 0 ? 'portfolio-return-positive' : 'portfolio-return-negative'}>
+                                {unrealPct >= 0 ? '+' : ''}{unrealPct.toFixed(1)}%
+                              </span>
+                            ) : '...'}
                           </td>
-                          <td>{pos.beta != null ? pos.beta.toFixed(2) : <span className="portfolio-data-error">ERR</span>}</td>
+                          <td>{betaData[pos.ticker] != null ? betaData[pos.ticker].toFixed(2) : <span className="portfolio-data-error">...</span>}</td>
                           <td>{sharpe != null ? sharpe.toFixed(2) : <span className="portfolio-data-error">ERR</span>}</td>
                           {['return1Y', 'return3Y', 'return5Y'].map((key) => {
                             const hist = historicalData[pos.ticker];
@@ -999,8 +1135,7 @@ function PortfolioView({ user, onSignIn }) {
                       <th>Type</th>
                       <th>Fund</th>
                       <th>Amount</th>
-                      <th>Exp. Return</th>
-                      <th>Beta</th>
+                      <th>Realized Gain</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1020,8 +1155,15 @@ function PortfolioView({ user, onSignIn }) {
                           <span className="portfolio-ticker">{tx.ticker}</span>
                         </td>
                         <td>{tx.type === 'sell' ? '-' : ''}{formatCurrency(tx.amount)}</td>
-                        <td>{(Number(tx.expected_return) * 100).toFixed(2)}%</td>
-                        <td>{Number(tx.beta).toFixed(2)}</td>
+                        <td>
+                          {tx.type === 'sell' && realizedGainByTx[tx.id] != null ? (
+                            <span className={realizedGainByTx[tx.id] >= 0 ? 'portfolio-return-positive' : 'portfolio-return-negative'}>
+                              {realizedGainByTx[tx.id] >= 0 ? '+' : ''}{formatCurrency(realizedGainByTx[tx.id])}
+                            </span>
+                          ) : (
+                            <span style={{ color: '#94A3B8' }}>—</span>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

@@ -69,6 +69,12 @@ function App() {
 
   const handleSaveInvestment = async (result) => {
     const fund = funds.find((f) => f.ticker === result.fundTicker);
+    // Fetch current price for unit calculation
+    const priceRes = await fetch(`${API_BASE_URL}/price/${result.fundTicker}`);
+    const priceJson = await priceRes.json();
+    const currentPrice = priceJson.currentPrice;
+    const units = result.initialAmount / currentPrice;
+
     const { error } = await supabase.from("transactions").insert({
       user_id: user.id,
       type: 'buy',
@@ -76,8 +82,9 @@ function App() {
       ticker: result.fundTicker,
       fund_name: fund?.name || result.fundTicker,
       amount: result.initialAmount,
+      price_per_unit: currentPrice,
+      units: units,
       expected_return: result.expectedReturn,
-      beta: result.beta,
     });
     if (error) throw error;
   };

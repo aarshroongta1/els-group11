@@ -1187,8 +1187,17 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 0.2rem;
-  padding: 0 0.75rem;
+  padding: 0 0.5rem;
   border-right: 1px solid #E8EEF5;
+  min-width: 0;
+}
+
+.summary-stat--wide {
+  flex: 1.4;
+}
+
+.summary-stat--narrow {
+  flex: 0.7;
 }
 
 .summary-stat:last-child {
@@ -1202,6 +1211,9 @@ body {
   color: #6B7C93;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
 }
 
 .summary-stat-value {
@@ -1209,6 +1221,7 @@ body {
   font-size: 1.05rem;
   font-weight: 600;
   color: #003A70;
+  white-space: nowrap;
 }
 
 .summary-stat-positive {
@@ -1605,6 +1618,89 @@ body {
   margin-top: 0.5rem;
   width: auto;
   padding: 0.75rem 2rem;
+}
+
+/* --- Summary Stat Info Tooltip --- */
+.summary-stat-info {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.3rem;
+  cursor: help;
+  vertical-align: middle;
+  flex-shrink: 0;
+  position: relative;
+  opacity: 0.7;
+  transition: opacity 0.15s ease;
+}
+
+.summary-stat-info:hover {
+  opacity: 1;
+}
+
+.summary-stat-info:hover .summary-stat-tooltip {
+  visibility: visible;
+  opacity: 1;
+}
+
+.summary-stat-tooltip {
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #ffffff;
+  color: #2d2a26;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  line-height: 1.5;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  border: 1px solid #c8d6e5;
+  width: 240px;
+  white-space: normal;
+  z-index: 100;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  box-shadow: 0 6px 20px rgba(0, 58, 112, 0.1);
+}
+
+.summary-stat-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: #c8d6e5;
+}
+
+.summary-stat-tooltip::before {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: #ffffff;
+  z-index: 1;
+}
+
+/* Right-aligned tooltip for stats near the edge */
+.summary-stat-tooltip--right {
+  left: auto;
+  right: -0.5rem;
+  transform: none;
+}
+
+.summary-stat-tooltip--right::after,
+.summary-stat-tooltip--right::before {
+  left: auto;
+  right: 0.75rem;
+  transform: none;
 }
 
 /* --- Transaction Buy/Sell Toggle --- */
