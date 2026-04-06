@@ -219,7 +219,7 @@ function GrowthProjectionChart({ positions, funds, selectedFund, priceData }) {
 }
 
 /* ─── Historical "Since Inception" Chart (real prices) ─── */
-function HistoricalValueChart({ transactions, priceHistory }) {
+function HistoricalValueChart({ transactions, priceHistory, selectedFund }) {
   const width = 500;
   const height = 220;
   const padL = 55;
@@ -256,58 +256,116 @@ function HistoricalValueChart({ transactions, priceHistory }) {
     });
   });
 
-  // For each timestamp, compute portfolio value
+  // Helper: get price for a ticker at a given timestamp
+  const getPrice = (ticker, ts) => {
+    const prices = priceHistory[ticker];
+    if (!prices) return null;
+    for (let i = prices.length - 1; i >= 0; i--) {
+      if (prices[i].timestamp <= ts) return prices[i].price;
+    }
+    return null;
+  };
+
+  // Helper: get units held for a ticker at a given timestamp
+  const getUnitsAt = (ticker, ts) => {
+    let units = 0;
+    transactions.forEach((tx) => {
+      if (tx.ticker !== ticker) return;
+      if (new Date(tx.date).getTime() / 1000 > ts) return;
+      const txUnits = Number(tx.units || 0);
+      if (tx.type === 'buy') units += txUnits;
+      else units -= txUnits;
+    });
+    return units;
+  };
+
+  // Helper: portfolio value at a timestamp
+  const getPortfolioValue = (ts) => {
+    let value = 0;
+    tickers.forEach((ticker) => {
+      const price = getPrice(ticker, ts);
+      if (price == null) return;
+      const units = getUnitsAt(ticker, ts);
+      if (units > 0) value += units * price;
+    });
+    return value;
+  };
+
+  // Precompute transaction timestamps in seconds for matching
+  const txWithTs = transactions.map((tx) => ({
+    ...tx,
+    tsSec: new Date(tx.date).getTime() / 1000,
+    cf: tx.type === 'buy' ? Number(tx.amount) : -Number(tx.amount),
+  }));
+
+  // Compute TWR: chain daily returns, adjusting for cash flows between timestamps
   const dataPoints = [];
+  let cumReturn = 1.0;
+  let prevValue = null;
+  let prevTs = null;
+
   sortedTimestamps.forEach((ts) => {
     const tsMs = ts * 1000;
+    const value = getPortfolioValue(ts);
+    if (value <= 0 && prevValue === null) return;
 
-    // Compute units held per ticker at this date
-    let portfolioValue = 0;
-    let hasData = false;
-
-    tickers.forEach((ticker) => {
-      // Get closest price <= this timestamp
-      const prices = priceHistory[ticker];
-      let price = null;
-      for (let i = prices.length - 1; i >= 0; i--) {
-        if (prices[i].timestamp <= ts) { price = prices[i].price; break; }
-      }
-      if (price == null) return;
-
-      // Compute units held at this date
-      let units = 0;
-      transactions.forEach((tx) => {
-        if (tx.ticker !== ticker) return;
-        if (new Date(tx.date).getTime() / 1000 > ts) return;
-        const txUnits = Number(tx.units || 0);
-        if (tx.type === 'buy') units += txUnits;
-        else units -= txUnits;
+    if (prevValue !== null && prevValue > 0 && prevTs !== null) {
+      // Sum cash flows from transactions between prevTs and ts
+      let cf = 0;
+      txWithTs.forEach((tx) => {
+        if (tx.tsSec > prevTs && tx.tsSec <= ts) {
+          cf += tx.cf;
+        }
       });
 
-      if (units > 0) {
-        portfolioValue += units * price;
-        hasData = true;
+      const adjustedPrev = prevValue + cf;
+      if (adjustedPrev > 0) {
+        const dailyReturn = value / adjustedPrev;
+        cumReturn *= dailyReturn;
       }
-    });
-
-    if (hasData) {
-      dataPoints.push({ date: new Date(tsMs), timestamp: tsMs, value: portfolioValue });
     }
+
+    prevValue = value;
+    prevTs = ts;
+    const returnPct = (cumReturn - 1) * 100;
+    dataPoints.push({ date: new Date(tsMs), timestamp: tsMs, value: returnPct });
   });
+
+  // Selected fund curve — simple price return % from first buy price
+  let fundCurve = null;
+  if (selectedFund && priceHistory[selectedFund]) {
+    const fundTxs = transactions.filter((tx) => tx.ticker === selectedFund && tx.type === 'buy');
+    if (fundTxs.length > 0) {
+      const firstBuyPrice = Number(fundTxs[0].price_per_unit);
+      if (firstBuyPrice > 0) {
+        const points = [];
+        const firstBuyTs = new Date(fundTxs[0].date).getTime() / 1000;
+        sortedTimestamps.forEach((ts) => {
+          if (ts < firstBuyTs) return;
+          const price = getPrice(selectedFund, ts);
+          if (price == null) return;
+          const returnPct = ((price / firstBuyPrice) - 1) * 100;
+          points.push({ date: new Date(ts * 1000), timestamp: ts * 1000, value: returnPct });
+        });
+        if (points.length > 0) fundCurve = { ticker: selectedFund, points, color: '#2E86DE' };
+      }
+    }
+  }
 
   if (dataPoints.length === 0) return null;
 
-  const minTime = dataPoints[0].timestamp;
-  const maxTime = dataPoints[dataPoints.length - 1].timestamp;
+  const allPoints = [...dataPoints, ...(fundCurve ? fundCurve.points : [])];
+  const minTime = Math.min(...allPoints.map((p) => p.timestamp));
+  const maxTime = Math.max(...allPoints.map((p) => p.timestamp));
   const timeRange = maxTime - minTime || 1;
-  const maxVal = Math.max(...dataPoints.map((p) => p.value));
-  const minVal = Math.min(...dataPoints.map((p) => p.value));
+  const maxVal = Math.max(...allPoints.map((p) => p.value));
+  const minVal = Math.min(...allPoints.map((p) => p.value));
   const valRange = maxVal - minVal || 1;
 
   const toX = (ts) => padL + ((ts - minTime) / timeRange) * (width - padL - padR);
   const toY = (value) => padTop + (1 - (value - minVal) / valRange) * (height - padTop - padBottom);
 
-  const yTicks = [minVal, minVal + valRange * 0.33, minVal + valRange * 0.66, maxVal];
+  const yTicks = [minVal, minVal + (maxVal - minVal) * 0.33, minVal + (maxVal - minVal) * 0.66, maxVal];
   const xTickCount = 4;
   const xTicks = [];
   for (let i = 0; i < xTickCount; i++) {
@@ -317,8 +375,8 @@ function HistoricalValueChart({ transactions, priceHistory }) {
 
   const makePath = (pts) => pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${toX(p.timestamp)},${toY(p.value)}`).join(' ');
 
-  const totalGain = dataPoints[dataPoints.length - 1].value - dataPoints[0].value;
-  const lineColor = totalGain >= 0 ? '#059669' : '#DC2626';
+  const finalReturn = dataPoints[dataPoints.length - 1].value;
+  const lineColor = finalReturn >= 0 ? '#059669' : '#DC2626';
 
   return (
     <>
@@ -327,7 +385,7 @@ function HistoricalValueChart({ transactions, priceHistory }) {
           <g key={i}>
             <line x1={padL} y1={toY(val)} x2={width - padR} y2={toY(val)} stroke="#E8EEF5" strokeWidth="1" />
             <text x={padL - 8} y={toY(val) + 4} textAnchor="end" className="chart-axis-label">
-              {val >= 1000 ? `$${(val / 1000).toFixed(0)}k` : `$${val.toFixed(0)}`}
+              {val >= 0 ? '+' : ''}{val.toFixed(1)}%
             </text>
           </g>
         ))}
@@ -336,6 +394,18 @@ function HistoricalValueChart({ transactions, priceHistory }) {
             {tick.label}
           </text>
         ))}
+        {/* Zero line */}
+        {minVal < 0 && maxVal > 0 && (
+          <line x1={padL} y1={toY(0)} x2={width - padR} y2={toY(0)} stroke="#94A3B8" strokeWidth="0.75" strokeDasharray="4,3" />
+        )}
+        {/* Selected fund curve */}
+        {fundCurve && (
+          <g>
+            <path d={makePath(fundCurve.points)} fill="none" stroke={fundCurve.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx={toX(fundCurve.points[fundCurve.points.length - 1].timestamp)} cy={toY(fundCurve.points[fundCurve.points.length - 1].value)} r="3.5" fill={fundCurve.color} />
+          </g>
+        )}
+        {/* Portfolio TWR curve */}
         <path d={makePath(dataPoints)} fill="none" stroke={lineColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
         <circle cx={toX(dataPoints[dataPoints.length - 1].timestamp)} cy={toY(dataPoints[dataPoints.length - 1].value)} r="4" fill={lineColor} />
       </svg>
@@ -343,13 +413,19 @@ function HistoricalValueChart({ transactions, priceHistory }) {
         <div className="chart-legend-item">
           <span className="chart-legend-dot" style={{ background: lineColor }} />
           <span className="chart-legend-ticker">Portfolio</span>
-          <span className="chart-legend-pct">{formatCurrency(dataPoints[dataPoints.length - 1].value)}</span>
-        </div>
-        <div className="chart-legend-item">
-          <span className="chart-legend-ticker" style={{ color: lineColor, fontWeight: 700 }}>
-            {totalGain >= 0 ? '+' : ''}{formatCurrency(totalGain)}
+          <span className="chart-legend-pct" style={{ color: lineColor, fontWeight: 700 }}>
+            {finalReturn >= 0 ? '+' : ''}{finalReturn.toFixed(2)}%
           </span>
         </div>
+        {fundCurve && (
+          <div className="chart-legend-item">
+            <span className="chart-legend-dot" style={{ background: fundCurve.color }} />
+            <span className="chart-legend-ticker">{fundCurve.ticker}</span>
+            <span className="chart-legend-pct" style={{ color: fundCurve.points[fundCurve.points.length - 1].value >= 0 ? '#059669' : '#DC2626', fontWeight: 700 }}>
+              {fundCurve.points[fundCurve.points.length - 1].value >= 0 ? '+' : ''}{fundCurve.points[fundCurve.points.length - 1].value.toFixed(2)}%
+            </span>
+          </div>
+        )}
       </div>
     </>
   );
@@ -379,7 +455,7 @@ function PortfolioView({ user, onSignIn }) {
   const [priceData, setPriceData] = useState({});
   const [priceHistory, setPriceHistory] = useState({});
   const [selectedFund, setSelectedFund] = useState(null);
-  const [chartMode, setChartMode] = useState('projected');
+  const [chartMode, setChartMode] = useState('historic');
   const [historyPeriod, setHistoryPeriod] = useState('ALL');
   const searchRef = useRef(null);
 
@@ -535,7 +611,7 @@ function PortfolioView({ user, onSignIn }) {
 
   // Fetch price history for historical chart
   useEffect(() => {
-    if (positions.length === 0 || chartMode !== 'since-inception') return;
+    if (positions.length === 0 || chartMode !== 'historic') return;
     const rangeMap = { '1M': '1mo', '3M': '3mo', '1Y': '1y', 'ALL': 'max' };
     const range = rangeMap[historyPeriod] || 'max';
     const tickers = [...new Set(positions.map((p) => p.ticker))];
@@ -1009,20 +1085,20 @@ function PortfolioView({ user, onSignIn }) {
                     <div className="portfolio-chart-toggle">
                       <button
                         type="button"
+                        className={`portfolio-chart-toggle-btn${chartMode === 'historic' ? ' portfolio-chart-toggle-btn--active' : ''}`}
+                        onClick={() => setChartMode('historic')}
+                      >
+                        Historic
+                      </button>
+                      <button
+                        type="button"
                         className={`portfolio-chart-toggle-btn${chartMode === 'projected' ? ' portfolio-chart-toggle-btn--active' : ''}`}
                         onClick={() => setChartMode('projected')}
                       >
                         Projected
                       </button>
-                      <button
-                        type="button"
-                        className={`portfolio-chart-toggle-btn${chartMode === 'since-inception' ? ' portfolio-chart-toggle-btn--active' : ''}`}
-                        onClick={() => setChartMode('since-inception')}
-                      >
-                        Since Inception
-                      </button>
                     </div>
-                    {chartMode === 'since-inception' && (
+                    {chartMode === 'historic' && (
                       <div className="portfolio-period-filter">
                         {['1M', '3M', '1Y', 'ALL'].map((p) => (
                           <button
@@ -1037,9 +1113,9 @@ function PortfolioView({ user, onSignIn }) {
                       </div>
                     )}
                   </div>
-                  {chartMode === 'projected'
-                    ? <GrowthProjectionChart positions={positions} funds={funds} selectedFund={selectedFund} priceData={priceData} />
-                    : <HistoricalValueChart transactions={transactions} priceHistory={priceHistory} />
+                  {chartMode === 'historic'
+                    ? <HistoricalValueChart transactions={transactions} priceHistory={priceHistory} selectedFund={selectedFund} />
+                    : <GrowthProjectionChart positions={positions} funds={funds} selectedFund={selectedFund} priceData={priceData} />
                   }
                 </div>
               </div>
