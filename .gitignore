@@ -16,5 +16,8 @@ frontend/build/
 # Secrets
 .env
 
+# Claude Code
+.claude/worktrees/
+
 # OS
 .DS_Store

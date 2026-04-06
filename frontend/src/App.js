@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "./supabaseClient";
 import FundSelector from "./components/FundSelector";
 import InvestmentInput from "./components/InvestmentInput";
@@ -28,6 +28,11 @@ function App() {
   const [currentView, setCurrentView] = useState("calculator");
   const [riskLevel, setRiskLevel] = useState("medium");
   const [recommendation, setRecommendation] = useState(null);
+  const [portfolioData, setPortfolioData] = useState(null);
+
+  const handlePortfolioChange = useCallback((data) => {
+    setPortfolioData(data);
+  }, []);
 
   // Fetch mutual funds on component mount
   useEffect(() => {
@@ -205,16 +210,20 @@ function App() {
         })
       });
 
+      if (!response.ok) {
+        throw new Error("Recommendation service unavailable");
+      }
       const data = await response.json();
       setRecommendation(data);
     } catch (err) {
-      setError("Failed to get recommendation");
+      setError(err.message || "Failed to get recommendation");
     } finally {
       setLoading(false);
     }
   };
 
   const chatbotContext = {
+    currentView,
     selectedFunds,
     amount: amount ? parseFloat(amount) : null,
     years: getYears() || null,
@@ -223,6 +232,8 @@ function App() {
       recommendation?.recommendedFunds?.map((fund) =>
         typeof fund === "string" ? fund : fund.name,
       ) ?? [],
+    portfolioPositions: portfolioData?.portfolioPositions ?? [],
+    portfolioMetrics: portfolioData?.portfolioMetrics ?? null,
   };
 
   const recommendationIntro =
@@ -296,7 +307,6 @@ function App() {
                     const fundName = typeof fundObj === "string" ? fundObj : fundObj.name;
                     const fundExplanation = typeof fundObj === "string" ? "" : fundObj.explanation;
                     const fitScore = typeof fundObj === "string" ? null : fundObj.fitScore;
-                    const highlights = typeof fundObj === "string" ? [] : fundObj.highlights ?? [];
                     return (
                       <div key={index} className="recommendation-item">
                         <div className="recommendation-item-top">
@@ -308,15 +318,6 @@ function App() {
                         </div>
                         {fundExplanation && (
                           <p className="recommendation-text">{fundExplanation}</p>
-                        )}
-                        {highlights.length > 0 && (
-                          <div className="recommendation-highlights">
-                            {highlights.map((highlight) => (
-                              <span key={highlight} className="recommendation-highlight-chip">
-                                {highlight}
-                              </span>
-                            ))}
-                          </div>
                         )}
                       </div>
                     );
@@ -368,7 +369,7 @@ function App() {
       return <AuthPage onAuthSuccess={handleAuthSuccess} />;
     }
     if (currentView === "portfolio") {
-      return <PortfolioView user={user} onSignIn={() => setCurrentView("auth")} />;
+      return <PortfolioView user={user} onSignIn={() => setCurrentView("auth")} onPortfolioChange={handlePortfolioChange} />;
     }
     return renderCalculator();
   };

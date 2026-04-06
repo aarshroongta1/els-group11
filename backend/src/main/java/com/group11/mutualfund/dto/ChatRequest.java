@@ -12,6 +12,9 @@ public class ChatRequest {
     private List<String> recommendedFunds;
     private String preferredLanguage;
     private List<ChatTurn> history;
+    private String currentView;
+    private List<PortfolioPosition> portfolioPositions;
+    private PortfolioMetrics portfolioMetrics;
 
     public String getMessage() {
         return message;
@@ -75,6 +78,86 @@ public class ChatRequest {
 
     public void setHistory(List<ChatTurn> history) {
         this.history = history;
+    }
+
+    public String getCurrentView() {
+        return currentView;
+    }
+
+    public void setCurrentView(String currentView) {
+        this.currentView = currentView;
+    }
+
+    public List<PortfolioPosition> getPortfolioPositions() {
+        return portfolioPositions;
+    }
+
+    public void setPortfolioPositions(List<PortfolioPosition> portfolioPositions) {
+        this.portfolioPositions = portfolioPositions;
+    }
+
+    public PortfolioMetrics getPortfolioMetrics() {
+        return portfolioMetrics;
+    }
+
+    public void setPortfolioMetrics(PortfolioMetrics portfolioMetrics) {
+        this.portfolioMetrics = portfolioMetrics;
+    }
+
+    public static class PortfolioPosition {
+        private String ticker;
+        private String fundName;
+        private Double costBasis;
+        private Double currentValue;
+        private Double unrealizedGain;
+        private Double weight;
+        private Double beta;
+        private Double sharpe;
+
+        public String getTicker() { return ticker; }
+        public void setTicker(String ticker) { this.ticker = ticker; }
+        public String getFundName() { return fundName; }
+        public void setFundName(String fundName) { this.fundName = fundName; }
+        public Double getCostBasis() { return costBasis; }
+        public void setCostBasis(Double costBasis) { this.costBasis = costBasis; }
+        public Double getCurrentValue() { return currentValue; }
+        public void setCurrentValue(Double currentValue) { this.currentValue = currentValue; }
+        public Double getUnrealizedGain() { return unrealizedGain; }
+        public void setUnrealizedGain(Double unrealizedGain) { this.unrealizedGain = unrealizedGain; }
+        public Double getWeight() { return weight; }
+        public void setWeight(Double weight) { this.weight = weight; }
+        public Double getBeta() { return beta; }
+        public void setBeta(Double beta) { this.beta = beta; }
+        public Double getSharpe() { return sharpe; }
+        public void setSharpe(Double sharpe) { this.sharpe = sharpe; }
+    }
+
+    public static class PortfolioMetrics {
+        private Double totalInvested;
+        private Double currentValue;
+        private Double totalWithdrawn;
+        private Double unrealizedGain;
+        private Double realizedGain;
+        private Double weightedBeta;
+        private Double weightedSharpe;
+        private Double volatility;
+
+        public Double getTotalInvested() { return totalInvested; }
+        public void setTotalInvested(Double totalInvested) { this.totalInvested = totalInvested; }
+        public Double getCurrentValue() { return currentValue; }
+        public void setCurrentValue(Double currentValue) { this.currentValue = currentValue; }
+        public Double getTotalWithdrawn() { return totalWithdrawn; }
+        public void setTotalWithdrawn(Double totalWithdrawn) { this.totalWithdrawn = totalWithdrawn; }
+        public Double getUnrealizedGain() { return unrealizedGain; }
+        public void setUnrealizedGain(Double unrealizedGain) { this.unrealizedGain = unrealizedGain; }
+        public Double getRealizedGain() { return realizedGain; }
+        public void setRealizedGain(Double realizedGain) { this.realizedGain = realizedGain; }
+        public Double getWeightedBeta() { return weightedBeta; }
+        public void setWeightedBeta(Double weightedBeta) { this.weightedBeta = weightedBeta; }
+        public Double getWeightedSharpe() { return weightedSharpe; }
+        public void setWeightedSharpe(Double weightedSharpe) { this.weightedSharpe = weightedSharpe; }
+        public Double getVolatility() { return volatility; }
+        public void setVolatility(Double volatility) { this.volatility = volatility; }
     }
 
     public static class ChatTurn {

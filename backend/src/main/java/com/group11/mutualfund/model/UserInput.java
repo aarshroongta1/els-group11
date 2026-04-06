@@ -5,7 +5,7 @@ import java.util.Map;
 public class UserInput {
 
     private double amount;
-    private int years;
+    private double years;
     private String riskLevel;
     private Map<String, Double> projectedReturns;
 
@@ -17,11 +17,11 @@ public class UserInput {
         this.amount = amount;
     }
 
-    public int getYears() {
+    public double getYears() {
         return years;
     }
 
-    public void setYears(int years) {
+    public void setYears(double years) {
         this.years = years;
     }
 

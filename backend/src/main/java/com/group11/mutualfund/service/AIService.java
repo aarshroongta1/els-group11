@@ -17,34 +17,27 @@ import java.util.Map;
 public class AIService {
 
     private static final String CHAT_SYSTEM_PROMPT = """
-            You are Atlas, a smart and friendly assistant like ChatGPT inside a mutual fund planning app.
+            You are Atlas, an intelligent investment assistant built into a mutual fund planning app.
 
-            Core behavior:
-            - You can answer any question the user asks.
-            - When the question is about finance or investing, give helpful, practical guidance.
-            - When the question is about the app, explain the app clearly and accurately.
-            - If the question is outside finance or the app, still answer helpfully like a general assistant.
+            You answer any question — finance, the app, or general knowledge. Adapt your depth to the question: a yes/no question gets a short answer, a "how does X work" gets a clear explanation.
 
-            Style rules:
-            - Sound warm, clear, and confident.
-            - Keep answers concise, easy to understand, and natural.
-            - Use short paragraphs instead of long blocks of text.
-            - Avoid repetitive fallback phrasing.
-            - Use recent conversation history to answer follow-up questions naturally.
-            - If the user seems confused, explain step by step in simple language.
-            - If the user writes in a non-English language, reply in that language.
-            - If a preferred language is provided, reply in that language.
+            Voice & style:
+            - Warm, confident, concise. Short paragraphs, no filler.
+            - When the user provides numbers, reference them — don't give generic advice when you have specifics.
+            - If the user writes in another language or a preferred language is set, reply in that language.
+            - Use conversation history to handle follow-ups naturally; never repeat what you just said.
 
-            Finance rules:
-            - Be helpful, but do not promise returns or guarantee outcomes.
-            - Use cautious wording such as "may", "can", or "often".
-            - Explain metrics like beta, Sharpe ratio, expense ratio, and diversification in plain English when helpful.
-            - Explain scenarios such as bull, base, and bear market outcomes clearly.
+            Finance guardrails:
+            - Never promise returns or guarantee outcomes. Use "may", "can", "historically", "often".
+            - Explain metrics (beta, Sharpe, expense ratio, volatility, diversification) in plain English when relevant.
+            - When discussing scenarios (bull / base / bear), tie them to the user's actual holdings or inputs when available.
 
-            App context:
-            - Users can select funds, enter an investment amount, choose a time horizon, set a risk level, calculate projected future value, and request fund recommendations.
-            - The recommendation section explains why certain funds may fit the user's profile.
-            - Users may ask how to use the app, what a result means, or which step to take next.
+            App knowledge:
+            The app has two views:
+            1. Calculator — select funds, set amount / time horizon / risk level, calculate projected future value, get AI-powered fund recommendations.
+            2. Portfolio Tracker — view holdings, record buy/sell transactions, track unrealized & realized gains, see allocation breakdown, historical TWR performance, growth projections, and risk metrics (beta, Sharpe, volatility).
+
+            When portfolio data is included in the context, use it to give specific, personalized insights — comment on concentration, risk exposure, gain/loss, and actionable next steps rather than generic definitions.
             """;
 
     private final WebClient webClient;
@@ -65,14 +58,7 @@ public class AIService {
 
     public Map<String, Object> getPortfolioRecommendation(UserInput input, List<String> tickers) {
         if (webClient == null) {
-            return Map.of(
-                    "recommendedFunds", List.of(
-                            Map.of("name", "VFIAX", "explanation", "Steady S&P 500 growth with a strong long-term track record."),
-                            Map.of("name", "FXAIX", "explanation", "Low-cost exposure to top U.S. companies, making it efficient and reliable."),
-                            Map.of("name", "VTSAX", "explanation", "Broad U.S. market coverage for simple, diversified growth.")
-                    ),
-                    "explanation", "Default recommendations were used because AI is not configured."
-            );
+            return null;
         }
 
         String prompt = buildPrompt(input, tickers);
@@ -81,12 +67,11 @@ public class AIService {
                 .uri("/chat/completions")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(Map.of(
-                        "model", "gpt-4",
+                        "model", "gpt-5-mini",
                         "messages", List.of(
-                                Map.of("role", "system", "content", "You are a strict financial advisor."),
+                                Map.of("role", "system", "content", "You are a knowledgeable financial advisor. Return ONLY valid JSON, no markdown fences."),
                                 Map.of("role", "user", "content", prompt)
-                        ),
-                        "max_tokens", 300
+                        )
                 ))
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {})
@@ -113,43 +98,36 @@ public class AIService {
             return objectMapper.readValue(content, new TypeReference<Map<String, Object>>() {});
         } catch (Exception e) {
             e.printStackTrace();
-            return Map.of(
-                    "recommendedFunds", List.of(
-                            Map.of("name", "VFIAX", "explanation", "Broad market exposure with steady long-term potential."),
-                            Map.of("name", "FXAIX", "explanation", "A low-cost way to invest in leading U.S. companies."),
-                            Map.of("name", "VTSAX", "explanation", "One fund that gives you wide U.S. stock market diversification.")
-                    ),
-                    "explanation", "AI parsing failed. Default funds were provided."
-            );
+            return null;
         }
     }
 
+    private String formatHorizon(double years) {
+        if (years >= 1) {
+            return years == Math.floor(years)
+                    ? String.format("%.0f years", years)
+                    : String.format("%.1f years", years);
+        }
+        double months = years * 12;
+        if (months >= 1) {
+            return months == Math.floor(months)
+                    ? String.format("%.0f months", months)
+                    : String.format("%.1f months", months);
+        }
+        double days = years * 365;
+        return String.format("%.0f days", days);
+    }
+
     private String buildPrompt(UserInput input, List<String> tickers) {
-        return "You are a strict financial advisor.\n\n" +
-                "User profile:\n" +
-                "- Amount: $" + input.getAmount() + "\n" +
-                "- Duration: " + input.getYears() + " years\n" +
-                "- Risk: " + input.getRiskLevel() + "\n\n" +
-                "Available funds:\n" +
-                String.join(", ", tickers) + "\n\n" +
-                "TASK:\n" +
-                "1. Select EXACTLY 3 funds.\n" +
-                "2. Each fund MUST have its own explanation.\n" +
-                "3. Each explanation MUST explain why this fund fits the user's profile.\n" +
-                "4. Each explanation MUST be one short, catchy sentence.\n" +
-                "5. Use 6 to 14 words only.\n" +
-                "6. Make it helpful, appealing, and easy to scan.\n" +
-                "7. Do not repeat the fund name inside the explanation.\n" +
-                "8. Return ONLY valid JSON.\n\n" +
-                "OUTPUT FORMAT:\n" +
-                "{\n" +
-                "  \"explanation\": \"Short overall summary.\",\n" +
-                "  \"recommendedFunds\": [\n" +
-                "    {\"name\": \"Fund1\", \"explanation\": \"Why it is recommended.\"},\n" +
-                "    {\"name\": \"Fund2\", \"explanation\": \"Why it is recommended.\"},\n" +
-                "    {\"name\": \"Fund3\", \"explanation\": \"Why it is recommended.\"}\n" +
-                "  ]\n" +
-                "}\n";
+        return "Investor profile:\n" +
+                "- Investment: $" + input.getAmount() + "\n" +
+                "- Horizon: " + formatHorizon(input.getYears()) + "\n" +
+                "- Risk tolerance: " + input.getRiskLevel() + "\n\n" +
+                "Available funds: " + String.join(", ", tickers) + "\n\n" +
+                "Pick EXACTLY 3 funds that best fit this investor. For each fund, write a single-sentence explanation (8-18 words) that tells the investor *why* this fund suits their specific profile — reference their risk level or horizon where natural. Do not repeat the fund name in the explanation.\n\n" +
+                "Also write a 1-2 sentence overall summary explaining the reasoning behind the selection as a group.\n\n" +
+                "Return ONLY this JSON (no markdown, no code fences):\n" +
+                "{\"explanation\": \"Overall summary.\", \"recommendedFunds\": [{\"name\": \"TICKER\", \"explanation\": \"Why it fits.\"}, ...]}\n";
     }
 
     public String chat(ChatRequest request) {
@@ -163,12 +141,11 @@ public class AIService {
                     .uri("/chat/completions")
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(Map.of(
-                            "model", "gpt-4",
+                            "model", "gpt-4.1-mini",
                             "messages", List.of(
                                     Map.of("role", "system", "content", CHAT_SYSTEM_PROMPT),
                                     Map.of("role", "user", "content", contextualMessage)
                             ),
-                            "max_tokens", 260,
                             "temperature", 0.7
                     ))
                     .retrieve()
@@ -276,14 +253,47 @@ public class AIService {
     private String buildChatContext(ChatRequest request) {
         StringBuilder builder = new StringBuilder();
         builder.append("User message: ").append(request == null ? "" : nullSafe(request.getMessage())).append("\n\n");
+
+        String currentView = request == null ? "calculator" : nullSafe(request.getCurrentView());
+        builder.append("Current view: ").append(currentView).append("\n\n");
+
         builder.append("Current app context:\n");
         builder.append("- Selected funds: ").append(formatList(request == null ? null : request.getSelectedFunds())).append("\n");
         builder.append("- Investment amount: ").append(request == null || request.getAmount() == null ? "Not set" : "$" + String.format("%.0f", request.getAmount())).append("\n");
-        builder.append("- Time horizon: ").append(request == null || request.getYears() == null ? "Not set" : String.format("%.1f years", request.getYears())).append("\n");
+        builder.append("- Time horizon: ").append(request == null || request.getYears() == null ? "Not set" : formatHorizon(request.getYears())).append("\n");
         builder.append("- Risk level: ").append(request == null ? "Not set" : nullSafe(request.getRiskLevel())).append("\n");
         builder.append("- Latest recommendations: ").append(formatList(request == null ? null : request.getRecommendedFunds())).append("\n");
         builder.append("- Preferred language: ").append(request == null ? "Auto" : nullSafe(request.getPreferredLanguage())).append("\n");
-        builder.append("- Recent conversation:\n").append(formatHistory(request == null ? null : request.getHistory())).append("\n");
+
+        if (request != null && request.getPortfolioPositions() != null && !request.getPortfolioPositions().isEmpty()) {
+            builder.append("\nPortfolio holdings:\n");
+            for (ChatRequest.PortfolioPosition pos : request.getPortfolioPositions()) {
+                builder.append("- ").append(nullSafe(pos.getTicker()));
+                if (pos.getFundName() != null) builder.append(" (").append(pos.getFundName()).append(")");
+                builder.append(": cost basis $").append(pos.getCostBasis() != null ? String.format("%.2f", pos.getCostBasis()) : "N/A");
+                builder.append(", current value $").append(pos.getCurrentValue() != null ? String.format("%.2f", pos.getCurrentValue()) : "N/A");
+                builder.append(", unrealized gain $").append(pos.getUnrealizedGain() != null ? String.format("%.2f", pos.getUnrealizedGain()) : "N/A");
+                builder.append(", weight ").append(pos.getWeight() != null ? String.format("%.1f%%", pos.getWeight()) : "N/A");
+                if (pos.getBeta() != null) builder.append(", beta ").append(String.format("%.2f", pos.getBeta()));
+                if (pos.getSharpe() != null) builder.append(", sharpe ").append(String.format("%.2f", pos.getSharpe()));
+                builder.append("\n");
+            }
+        }
+
+        if (request != null && request.getPortfolioMetrics() != null) {
+            ChatRequest.PortfolioMetrics m = request.getPortfolioMetrics();
+            builder.append("\nPortfolio summary:\n");
+            if (m.getTotalInvested() != null) builder.append("- Total invested: $").append(String.format("%.2f", m.getTotalInvested())).append("\n");
+            if (m.getCurrentValue() != null) builder.append("- Current value: $").append(String.format("%.2f", m.getCurrentValue())).append("\n");
+            if (m.getTotalWithdrawn() != null) builder.append("- Total withdrawn: $").append(String.format("%.2f", m.getTotalWithdrawn())).append("\n");
+            if (m.getUnrealizedGain() != null) builder.append("- Unrealized gain: $").append(String.format("%.2f", m.getUnrealizedGain())).append("\n");
+            if (m.getRealizedGain() != null) builder.append("- Realized gain: $").append(String.format("%.2f", m.getRealizedGain())).append("\n");
+            if (m.getWeightedBeta() != null) builder.append("- Portfolio beta: ").append(String.format("%.2f", m.getWeightedBeta())).append("\n");
+            if (m.getWeightedSharpe() != null) builder.append("- Portfolio Sharpe: ").append(String.format("%.2f", m.getWeightedSharpe())).append("\n");
+            if (m.getVolatility() != null) builder.append("- Portfolio volatility: ").append(String.format("%.2f%%", m.getVolatility())).append("\n");
+        }
+
+        builder.append("\n- Recent conversation:\n").append(formatHistory(request == null ? null : request.getHistory())).append("\n");
         builder.append("\nUse this context when it helps the user.");
         return builder.toString();
     }

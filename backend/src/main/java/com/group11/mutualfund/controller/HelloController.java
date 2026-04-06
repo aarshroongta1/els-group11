@@ -10,7 +10,9 @@ import com.group11.mutualfund.model.MutualFund;
 import com.group11.mutualfund.service.AIService;
 import com.group11.mutualfund.service.MutualFundService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.HashMap;
 import java.util.List;
@@ -94,11 +96,7 @@ public class HelloController {
         Map<String, Object> aiResponse = aiService.getPortfolioRecommendation(input, tickers);
 
         if (aiResponse == null) {
-            return new RecommendationResponse(
-                    buildDefaultRecommendations(tickers, input),
-                    "AI service failed. Default funds provided.",
-                    mutualFundService.buildPortfolioWarnings(input, tickers.stream().limit(3).toList())
-            );
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "AI service is unavailable. Please try again later.");
         }
 
         List<RecommendationResponse.RecommendedFund> recommendedFunds =
@@ -106,11 +104,11 @@ public class HelloController {
         String explanation = (String) aiResponse.get("explanation");
 
         if (recommendedFunds == null || recommendedFunds.isEmpty()) {
-            recommendedFunds = buildDefaultRecommendations(tickers, input);
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "AI service did not return recommendations. Please try again.");
         }
 
         if (explanation == null || explanation.isEmpty()) {
-            explanation = buildRecommendationSummary(input, recommendedFunds);
+            explanation = "Recommendations based on your profile.";
         }
 
         List<String> recommendedTickers = recommendedFunds.stream()
@@ -191,11 +189,7 @@ public class HelloController {
 
     private RecommendationResponse.RecommendedFund toRecommendedFund(Object rawFund, UserInput input) {
         if (rawFund instanceof String fundName) {
-            return mutualFundService.enrichRecommendation(
-                    fundName,
-                    buildFallbackFundExplanation(fundName, input),
-                    input
-            );
+            return mutualFundService.enrichRecommendation(fundName, "Recommended for your profile.", input);
         }
 
         if (rawFund instanceof Map<?, ?> fundMap) {
@@ -204,61 +198,17 @@ public class HelloController {
             String fundName = rawName instanceof String ? (String) rawName : "Unknown Fund";
             String fundExplanation = rawExplanation instanceof String && !((String) rawExplanation).isBlank()
                     ? (String) rawExplanation
-                    : buildFallbackFundExplanation(fundName, input);
+                    : "Recommended for your profile.";
 
             return mutualFundService.enrichRecommendation(fundName, fundExplanation, input);
         }
 
         return new RecommendationResponse.RecommendedFund(
                 "Unknown Fund",
-                "This fund was included in the recommendation, but no explanation was returned.",
-                60,
-                List.of("Recommendation available", "More details unavailable")
+                "No explanation was returned by AI.",
+                null,
+                List.of()
         );
-    }
-
-    private List<RecommendationResponse.RecommendedFund> buildDefaultRecommendations(List<String> tickers, UserInput input) {
-        return tickers.stream()
-                .limit(3)
-                .map(ticker -> mutualFundService.enrichRecommendation(
-                        ticker,
-                        buildFallbackFundExplanation(ticker, input),
-                        input
-                ))
-                .toList();
-    }
-
-    private String buildFallbackFundExplanation(String fundName, UserInput input) {
-        String riskLevel = input.getRiskLevel() == null ? "medium" : input.getRiskLevel().toLowerCase();
-
-        return switch (riskLevel) {
-            case "low" -> "fits a more conservative strategy with broader diversification and steadier performance.";
-            case "high" -> "offers stronger growth potential for a higher-risk, long-term strategy.";
-            default -> "balances growth and diversification for a moderate investment strategy.";
-        };
-    }
-
-    private String buildRecommendationSummary(UserInput input, List<RecommendationResponse.RecommendedFund> recommendedFunds) {
-        String riskLevel = input.getRiskLevel() == null ? "medium" : input.getRiskLevel().toLowerCase();
-        int years = input.getYears();
-
-        String strategy = switch (riskLevel) {
-            case "low" -> "stability, diversification, and lower volatility";
-            case "high" -> "growth potential, long-term upside, and stronger return opportunities";
-            default -> "balanced growth, diversification, and overall fund quality";
-        };
-
-        boolean hasLowCost = recommendedFunds.stream()
-                .map(RecommendationResponse.RecommendedFund::getHighlights)
-                .filter(highlights -> highlights != null)
-                .flatMap(List::stream)
-                .anyMatch(highlight -> highlight.toLowerCase().contains("low cost"));
-
-        String costFactor = hasLowCost ? " low fund costs," : "";
-
-        return "These are the funds we recommend based on your " + riskLevel + " risk level, a " +
-                years + "-year time horizon," + costFactor +
-                " and how strongly each fund fit our selection factors for " + strategy + ".";
     }
 
 }

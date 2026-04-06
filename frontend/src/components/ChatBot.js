@@ -5,11 +5,18 @@ const API_BASE_URL = "http://localhost:8080/api";
 const SAVED_INSIGHTS_KEY = "atlas_saved_insights";
 const PERSONA_NAME = "Atlas";
 
-const QUICK_PROMPTS = [
+const CALCULATOR_PROMPTS = [
   "How do recommendations work?",
   "Explain beta in simple words",
   "What happens in a bear market?",
   "I am stuck using the app",
+];
+
+const PORTFOLIO_PROMPTS = [
+  "How is my portfolio doing?",
+  "Am I well diversified?",
+  "Explain my unrealized gains",
+  "What does my portfolio beta mean?",
 ];
 
 const LANGUAGE_OPTIONS = [
@@ -257,6 +264,9 @@ function ChatBot({ context }) {
           recommendedFunds: context?.recommendedFunds ?? [],
           preferredLanguage: language,
           history,
+          currentView: context?.currentView ?? "calculator",
+          portfolioPositions: context?.portfolioPositions ?? [],
+          portfolioMetrics: context?.portfolioMetrics ?? null,
         }),
       });
 
@@ -394,7 +404,7 @@ function ChatBot({ context }) {
             )}
 
             <div className="chatbot-quick-prompts">
-              {QUICK_PROMPTS.map((prompt) => (
+              {(context?.currentView === "portfolio" ? PORTFOLIO_PROMPTS : CALCULATOR_PROMPTS).map((prompt) => (
                 <button
                   key={prompt}
                   className="chatbot-prompt-chip"

@@ -31,8 +31,11 @@ function ComparisonChart({ normalData, stressData, years }) {
   const padRight = 12;
 
   const allVals = [...normalData, ...stressData].map((d) => d.value);
-  const maxVal = Math.max(...allVals);
-  const minVal = Math.min(0, Math.min(...allVals));
+  const dataMax = Math.max(...allVals);
+  const dataMin = Math.min(...allVals);
+  const padding = (dataMax - dataMin) * 0.15 || dataMax * 0.05 || 1;
+  const maxVal = dataMax + padding;
+  const minVal = dataMin - padding;
   const range = maxVal - minVal || 1;
 
   const toPoint = (data) =>
@@ -111,7 +114,7 @@ function ComparisonChart({ normalData, stressData, years }) {
           textAnchor="middle"
           className="chart-label"
         >
-          Yr {normalPts[i].year}
+          {normalPts[i].year < 1 ? `${Math.round(normalPts[i].year * 12)}mo` : `Yr ${normalPts[i].year}`}
         </text>
       ))}
 
@@ -183,18 +186,23 @@ function StressTest({ results }) {
     const stressedRate =
       riskFreeRate + beta * (stressedMarketReturn - riskFreeRate);
 
-    // Build year-by-year for both normal and stressed
+    // Build data points for both normal and stressed
     const normalData = [];
     const stressData = [];
-    for (let y = 0; y <= years; y++) {
-      normalData.push({
-        year: y,
-        value: initialAmount * Math.exp(expectedReturn * y),
-      });
-      stressData.push({
-        year: y,
-        value: initialAmount * Math.exp(stressedRate * y),
-      });
+    if (years < 1) {
+      // Sub-year: use monthly data points
+      const months = Math.ceil(years * 12);
+      for (let m = 0; m <= months; m++) {
+        const t = m / 12;
+        normalData.push({ year: parseFloat(t.toFixed(2)), value: initialAmount * Math.exp(expectedReturn * t) });
+        stressData.push({ year: parseFloat(t.toFixed(2)), value: initialAmount * Math.exp(stressedRate * t) });
+      }
+    } else {
+      for (let y = 0; y <= Math.ceil(years); y++) {
+        const t = Math.min(y, years);
+        normalData.push({ year: t, value: initialAmount * Math.exp(expectedReturn * t) });
+        stressData.push({ year: t, value: initialAmount * Math.exp(stressedRate * t) });
+      }
     }
 
     const normalFV = normalData[normalData.length - 1].value;
@@ -250,8 +258,7 @@ function StressTest({ results }) {
           <h3 className="stress-title">Stress Test</h3>
         </div>
         <p className="stress-subtitle">
-          Simulate market shocks and see how your portfolio reacts based on each
-          fund's beta sensitivity.
+          Simulate market shocks and see how your portfolio reacts based on each fund's beta sensitivity.
         </p>
       </div>
 

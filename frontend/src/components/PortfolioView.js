@@ -432,7 +432,7 @@ function HistoricalValueChart({ transactions, priceHistory, selectedFund }) {
 }
 
 /* ─── Main PortfolioView Component ─── */
-function PortfolioView({ user, onSignIn }) {
+function PortfolioView({ user, onSignIn, onPortfolioChange }) {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -557,6 +557,52 @@ function PortfolioView({ user, onSignIn }) {
   const totalReturn = totalUnrealizedGain + totalRealizedGain;
   const openCostBasis = positions.reduce((s, p) => s + p.totalCostBasis, 0);
 
+  /* ─── Emit portfolio summary to parent for AI chatbot ─── */
+  useEffect(() => {
+    if (!onPortfolioChange) return;
+    const portfolioPositions = positionsWithGains.map((p) => {
+      const fundData = funds.find((f) => f.ticker === p.ticker);
+      return {
+        ticker: p.ticker,
+        fundName: p.fund_name,
+        costBasis: p.totalCostBasis,
+        currentValue: p.currentValue,
+        unrealizedGain: p.unrealizedGain,
+        weight: totalCurrentValue > 0 ? (p.currentValue || p.totalCostBasis) / totalCurrentValue * 100 : 0,
+        beta: betaData[p.ticker] ?? null,
+        sharpe: fundData?.sharpeRatio ?? null,
+      };
+    });
+
+    const allBetasLoaded = positions.every((p) => betaData[p.ticker] != null);
+    const missingFundData = positions.some((p) => !funds.find((f) => f.ticker === p.ticker));
+
+    const portfolioMetrics = {
+      totalInvested,
+      currentValue: totalCurrentValue,
+      totalWithdrawn,
+      unrealizedGain: totalUnrealizedGain,
+      realizedGain: totalRealizedGain,
+      weightedBeta: openCostBasis > 0 && allBetasLoaded
+        ? positions.reduce((sum, p) => sum + (betaData[p.ticker] || 0) * p.totalCostBasis, 0) / openCostBasis
+        : null,
+      weightedSharpe: openCostBasis > 0 && !missingFundData
+        ? positions.reduce((sum, p) => {
+            const fd = funds.find((f) => f.ticker === p.ticker);
+            return sum + (fd?.sharpeRatio || 0) * p.totalCostBasis;
+          }, 0) / openCostBasis
+        : null,
+      volatility: openCostBasis > 0 && !missingFundData
+        ? positions.reduce((sum, p) => {
+            const fd = funds.find((f) => f.ticker === p.ticker);
+            return sum + (fd?.standardDeviation || 0) * p.totalCostBasis;
+          }, 0) / openCostBasis
+        : null,
+    };
+
+    onPortfolioChange({ portfolioPositions, portfolioMetrics });
+  }, [positionsWithGains, totalCurrentValue, totalInvested, totalWithdrawn, totalUnrealizedGain, totalRealizedGain, betaData, funds, positions, openCostBasis, onPortfolioChange]);
+
   /* ─── Data fetching ─── */
   useEffect(() => {
     if (user) {
@@ -587,9 +633,14 @@ function PortfolioView({ user, onSignIn }) {
     tickers.forEach((ticker) => {
       if (betaData[ticker] != null) return;
       fetch(`${API_BASE_URL}/beta/${ticker}`)
-        .then((res) => res.json())
+        .then((res) => {
+          if (!res.ok) throw new Error('Beta fetch failed');
+          return res.json();
+        })
         .then((data) => {
-          setBetaData((prev) => ({ ...prev, [ticker]: data }));
+          if (typeof data === 'number' && !isNaN(data)) {
+            setBetaData((prev) => ({ ...prev, [ticker]: data }));
+          }
         })
         .catch(() => {});
     });
@@ -1128,7 +1179,7 @@ function PortfolioView({ user, onSignIn }) {
               </p>
             ) : (
               <div className="portfolio-table-wrapper">
-                <h3 className="portfolio-chart-title" style={{ padding: '1rem 1.25rem 0' }}>Holdings</h3>
+                <h3 className="portfolio-chart-title" style={{ padding: '0.75rem 0.75rem 0.5rem', borderBottom: '1px solid #c8d6e5', margin: 0 }}>Holdings</h3>
                 <table className="portfolio-table">
                   <thead>
                     <tr>
@@ -1207,7 +1258,7 @@ function PortfolioView({ user, onSignIn }) {
             {/* Transaction History */}
             {transactions.length > 0 && (
               <div className="portfolio-table-wrapper" style={{ marginTop: '1.25rem' }}>
-                <h3 className="portfolio-chart-title" style={{ padding: '1rem 1.25rem 0' }}>Transaction History</h3>
+                <h3 className="portfolio-chart-title" style={{ padding: '0.75rem 0.75rem 0.5rem', borderBottom: '1px solid #c8d6e5', margin: 0 }}>Transaction History</h3>
                 <table className="portfolio-table">
                   <thead>
                     <tr>

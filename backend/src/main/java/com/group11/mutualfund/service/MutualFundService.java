@@ -229,10 +229,11 @@ public class MutualFundService {
 
     /**
      * Get beta value for a mutual fund from Newton Analytics API
+     * Using monthly interval with 12 observations as per program task spec
      */
     public double getBeta(String ticker) {
         String url = String.format(
-            "/stock-beta/?ticker=%s&index=^GSPC&interval=1d&observations=100",
+            "/stock-beta/?ticker=%s&index=^GSPC&interval=1mo&observations=12",
             ticker
         );
 
