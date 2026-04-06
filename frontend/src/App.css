@@ -1662,7 +1662,7 @@ body {
   border: 1px solid #c8d6e5;
   width: 240px;
   white-space: normal;
-  z-index: 100;
+  z-index: 200;
   pointer-events: none;
   transition: opacity 0.15s ease;
   box-shadow: 0 6px 20px rgba(0, 58, 112, 0.1);
